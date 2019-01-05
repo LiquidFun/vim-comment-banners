@@ -2,6 +2,17 @@
 
 ==============================================================================
 
+    //====// //====// /\ ** /\ ***** /\ ** /\ ***** //====// /\ ** // //====//      
+   //       //    // //\\  //\\ *** //\\  //\\ *** //____   //\\  //    //    
+  //       //    // //  \\//  \\ * //  \\//  \\ * //       //  \\//    //      
+ //====// //====// //    \/    \\ //    \/    \\ //====// //    \/    //  
+               //===\\  //====// /\    // /\    // //====// //====// //====//                                           
+              //____// //____// //\\  // //\\  // //____   //____// //____                               
+             //   \\  //    // //  \\// //  \\// //       //  \\         //                      
+            //====// //    // //    \/ //    \/ //====// //    \\ //====//                                   
+                                                                               
+Alternative:
+
     //====// //====// /\    /\   /\    /\ \\====\\ \\    /\ \\====\\                                  
    //       //    // //\\  //\\ //\\  //\\ \\____   \\  //\\    \\                
   //       //    // //  \\//  \\/  \\//  \\ \\       \\//  \\    \\            
@@ -10,34 +21,38 @@
               //____// //____// //\\  // //\\  // //____   //____// //____                               
              //   \\  //    // //  \\// //  \\// //       //  \\         //                      
             //====// //    // //    \/ //    \/ //====// //    \\ //====//                                   
-                                                                               
+              
 ==============================================================================
-CONTENTS                                            *comment-banners-contents*
+CONTENTS                                            *commentbanners-contents*
 
-    1. Basics.................................|comment-banners-basics|
-    2. Flags..................................|comment-banners-flags|
-    3. Examples...............................|comment-banners-examples|
-    4. Extensions.............................|comment-banners-extensions|
+    1. Basics.................................|commentbanners-basics|
+    2. Flags..................................|commentbanners-flags|
+    3. Examples...............................|commentbanners-examples|
+    4. Extensions.............................|commentbanners-extensions|
 
 ==============================================================================
-BASICS                                                *comment-banners-basics*
+BASICS                                                *commentbanners-basics*
 
+Requires at least version 7.0.0
+
+This plugin provides the |CommentBanners| and /TODO/ commands 
 Let's you create mappings to create comment banners like these:
 
 ==============================================================================
-FLAGS                                                  *comment-banners-flags*
+FLAGS                                                  *commentbanners-flags*
+
+All flags require an argument, so there have to be an even number of space
+separated arguments.
+
+==============================================================================
+EXAMPLES                                            *commentbanners-examples*
 
 
 ==============================================================================
-EXAMPLES                                            *comment-banners-examples*
-
-
-==============================================================================
-EXAMPLES                                            *comment-banners-examples*
+EXTENSIONS                                        *commentbanners-extensions*
 
 
 Author: LiquidFun <https://github.com/liquidfun>
 License: same <|license|> as Vim
 
  vim:tw=78:et:ft=help:norl:
-▓

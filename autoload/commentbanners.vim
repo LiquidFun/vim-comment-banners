@@ -10,16 +10,21 @@
 let s:defaultOptions = {
         \ 'pattern': ['=', '=', '='],
         \ 'width': 78,
+        \ 'title': '',
+        \ 'hasTitle': 1,
         \ 'titleAlignment': 'centre',
         \ 'titleRowNum': 1,
-        \ 'subtitleAlignment': 'centre',
-        \ 'subtitleRowNum': 'after-title',
+        \ 'descriptionAlignment': 'centre',
+        \ 'descriptionRowNum': 'after-title',
+        \ 'description': '',
+        \ 'hasDescription': 0,
         \ 'commandsOnEachLine': [],
         \ 'spacesSeparatingTitle': 1,
         \ 'spacesSeparatingComment': 1,
         \ 'commentIfPossible': 0,
         \ 'beforeEach': '',
         \ 'afterEach': '',
+        \ 'mirror': 0,
     \ }
 
 " Flags
@@ -28,9 +33,10 @@ let s:flagToOption = {
         \ '-p': 'pattern',
         \ '--width': 'width',
         \ '-w': 'width',
-        \ '--alignment': 'titleAlignment',
-        \ '--align': 'titleAlignment',
+        \ '--title-align': 'titleAlignment',
         \ '-a': 'titleAlignment',
+        \ '--subtitle-align': 'subtitleAlignment',
+        \ '-l': 'subtitleAlignment',
         \ '--commands': 'commandForEachLine',
         \ '-C': 'commandForEachLine',
         \ '--comment': 'commentIfPossible',
@@ -39,12 +45,19 @@ let s:flagToOption = {
         \ '-B': 'beforeEach',
         \ '--after': 'afterEach',
         \ '-A': 'afterEach',
-        \ '--titlerow': 'titleRow',
-        \ '-t': 'titleRow',
+        \ '--title': 'title',
+        \ '-t': 'title',
+        \ '--subtitle': 'subtitle',
+        \ '-s': 'subtitle',
+        \ '--mirror': 'mirror',
+        \ '-m': 'mirror',
     \ }
 
 let s:optionToParsingFunction = {
         \ 'pattern': 's:parse_pattern',
+        \ 'mirror': 's:parse_bool',
+        \ 'title': 's:parse_text',
+        \ 'description': 's:parse_text',
     \ }
 
 "}}}1
@@ -66,15 +79,17 @@ endfunction
 " ** Flag Management {{{1
 
 function! s:apply_flags(flags)
+    " Returns: modified dict of default options
     let options = deepcopy(s:defaultOptions)
     for flag in a:flags
         let [flagName, value] = s:parse_flag(flag)
         let optionName = s:flagToOption[flagName]
         if has_key(s:optionToParsingFunction, optionName)
             let ParseFunction = function(s:optionToParsingFunction[optionName])
-            call ParseFunction(value)
+            call ParseFunction(options, optionName, value)
+        else
+            let options[optionName] = value
         endif
-        let options[optionName] = value
     endfor
     return options
 endfunction
@@ -104,8 +119,28 @@ function! s:parse_values(value)
 endfunction
 
 " Parse Value Functions {{{2
-function! s:parse_pattern(pattern)
-    echo 'works'
+function! s:parse_pattern(options, optionName, pattern)
+    for pnum in range(len(a:pattern))
+        if matchstr(a:pattern[pnum], '\\\@<!t')
+            let a:options['titleRowNum'] = pnum
+        endif
+        if matchstr(a:pattern[pnum], '\\\@<!s')
+            let a:options['subtitleRowNum'] = pnum
+        endif
+		let subPairs = {'\\\@<!t': '', '\\\@<!s': '','\\t': 't', '\\s': 's'}
+		for [key, val] in items(subPairs)
+            let a:pattern[pnum] = substitute(a:pattern[pnum], key, val, 'g') 
+        endfor
+    endfor
+    let a:options[a:optionName] = a:pattern
+endfunction
+
+function! s:parse_bool(options, optionName, value)
+    if a:value ==? 'false' || a:value == 0
+        let a:options[a:optionName] = 0
+    else
+        let a:options[a:optionName] = 1
+    endif
 endfunction
 " }}}2
 
@@ -113,7 +148,8 @@ endfunction
 " ** Banner Creation {{{1
 function! s:make_banner(lnum1, lnum2, options)
     " Find largest indentation
-    let finalCommentBanner = []
+    let aboveCommentBanner = []
+    let belowCommentBanner = []
     let tRow = a:options['titleRowNum']
     if tRow == 'none'
         let tRow = 0
@@ -282,4 +318,4 @@ function! s:comment_if_possible(isToBeCommented)
 endfunction
 " }}}1
 
-" vim:fen:fdm=marker:fmr={{{,}}}:fdl=2:fdc=1
+" vim:fdm=marker:fmr={{{,}}}:fdc=1
