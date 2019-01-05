@@ -8,7 +8,9 @@ if exists('g:loaded_comment_banners') && g:loaded_comment_banners
     finish
 endif
 
-command! -nargs=* CommentBanner call commentbanners#wrapper(<f-args>)
+" let g:loaded_comment_banners = 1
+
+command! -nargs=* -range CommentBanner call commentbanners#wrapper(<f-args>)
 command! -nargs=* -range CommentBannerWithMotion 
-    \ call commentbanners#wrapper_motion(<line1>, <line2>, <f-args>)
+    \ call commentbanners#wrapper_motion()
 

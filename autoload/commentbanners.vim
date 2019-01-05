@@ -9,9 +9,11 @@
 " Options
 let s:defaultOptions = {
         \ 'pattern': ['=', '=', '='],
-        \ 'width': 79,
+        \ 'width': 78,
         \ 'titleAlignment': 'centre',
-        \ 'titleRow': 1,
+        \ 'titleRowNum': 1,
+        \ 'subtitleAlignment': 'centre',
+        \ 'subtitleRowNum': 'after-title',
         \ 'commandsOnEachLine': [],
         \ 'spacesSeparatingTitle': 1,
         \ 'spacesSeparatingComment': 1,
@@ -41,6 +43,10 @@ let s:flagToOption = {
         \ '-t': 'titleRow',
     \ }
 
+let s:optionToParsingFunction = {
+        \ 'pattern': 's:parse_pattern',
+    \ }
+
 "}}}1
 " ** Wrappers {{{1
 function! commentbanners#wrapper(...) 
@@ -49,9 +55,12 @@ function! commentbanners#wrapper(...)
     call s:make_banner(lineNum, lineNum, options)
 endfunction
 
-function! commentbanners#wrapper_motion(line1, line2, ...) 
-    let options = s:apply_flags(a:000)
-    call s:make_banner(line1, line2, options)
+function! commentbanners#wrapper_motion() 
+    let &operatorfunc = 'commentbanners#wrapper'
+    echo &operatorfunc
+    call execute('g@')
+    " let options = s:apply_flags(a:000[2:])
+    " call s:make_banner(a:line1, a:line2, options)
 endfunction
 " }}}1
 " ** Flag Management {{{1
@@ -59,8 +68,13 @@ endfunction
 function! s:apply_flags(flags)
     let options = deepcopy(s:defaultOptions)
     for flag in a:flags
-        let [key, value] = s:parse_flag(flag)
-        let options[s:flagToOption[key]] = value
+        let [flagName, value] = s:parse_flag(flag)
+        let optionName = s:flagToOption[flagName]
+        if has_key(s:optionToParsingFunction, optionName)
+            let ParseFunction = function(s:optionToParsingFunction[optionName])
+            call ParseFunction(value)
+        endif
+        let options[optionName] = value
     endfor
     return options
 endfunction
@@ -72,7 +86,7 @@ function! s:parse_flag(flag)
     " Returns: dict with { flagName : value } 
     let key = matchstr(a:flag, '.\{-}=')
     let key = key[:len(key)-2]
-    let values =  s:parse_values(matchstr(a:flag, '=.*$')[1:])
+    let values = s:parse_values(matchstr(a:flag, '=.*$')[1:])
     return [key, values]
 endfunction
 
@@ -88,23 +102,31 @@ function! s:parse_values(value)
     endif
     return separate
 endfunction
+
+" Parse Value Functions {{{2
+function! s:parse_pattern(pattern)
+    echo 'works'
+endfunction
+" }}}2
+
 " }}}1
 " ** Banner Creation {{{1
 function! s:make_banner(lnum1, lnum2, options)
     " Find largest indentation
-    let all = []
-    let tRow = a:options['titleRow']
+    let finalCommentBanner = []
+    let tRow = a:options['titleRowNum']
+    if tRow == 'none'
+        let tRow = 0
+    endif
     let pLen = len(a:options['pattern'])
-    let from = a:lnum1 - tRow
-    let to = a:lnum1 + pLen - tRow - 1
     let indentation = ''
-    for lnum in range(from, to)
+    for lnum in range(a:lnum1, a:lnum2)
         let curr = matchstr(getline(lnum), '^\s*')
         if s:indentation_length(indentation) < s:indentation_length(curr)
             indentation == curr
         endif
     endfor
-    " Define variables which are true for all lines
+    " Define variables which are true for finalCommentBanner lines
     let cSpaces = repeat(' ', a:options['spacesSeparatingComment'])
     let comments = s:comment_chars()
     if comments[0] != ''
@@ -119,7 +141,7 @@ function! s:make_banner(lnum1, lnum2, options)
     let charsFit = a:options['width'] - len(front) - len(back)
     for index in range(0, tRow - 1)
         let currPattern = a:options['pattern'][index]
-        call add(all, front . repeat(currPattern, charsFit) . back)
+        call add(finalCommentBanner, front . repeat(currPattern, charsFit) . back)
     endfor
     " Set title
     for lnum in range(a:lnum1, a:lnum2) 
@@ -144,16 +166,16 @@ function! s:make_banner(lnum1, lnum2, options)
             \ . titletext 
             \ . repeat(currPattern, charsFitTitle - pCount)
             \ . back
-        call add(all, full)
+        call add(finalCommentBanner, full)
     endfor
     " Add fillers after
     for index in range(tRow + 1, pLen - 1)
         let currPattern = a:options['pattern'][index]
-        call add(all, front . repeat(currPattern, charsFit) . back)
+        call add(finalCommentBanner, front . repeat(currPattern, charsFit) . back)
     endfor
     " Insert banner
-    for index in range(len(all))
-        call append(a:lnum1 - tRow + index + 1, all[index])
+    for index in range(len(finalCommentBanner))
+        call append(a:lnum1 - tRow + index, finalCommentBanner[index])
     endfor
 endfunction
 "}}}1
@@ -260,4 +282,4 @@ function! s:comment_if_possible(isToBeCommented)
 endfunction
 " }}}1
 
-" vim:fen:fdm=marker:fmr={{{,}}}:fdl=0:fdc=1
+" vim:fen:fdm=marker:fmr={{{,}}}:fdl=2:fdc=1
