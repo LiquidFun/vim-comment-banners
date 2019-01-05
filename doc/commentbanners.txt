@@ -1,0 +1,9 @@
+*commentbanners.txt* Create customised comment banners
+
+Let's you create mappings to create comment banners like these:
+
+customisable with various flags
+
+Author: LiquidFun <https://github.com/liquidfun>
+License: same |license| as Vim
+ vim:tw=78:et:ft=help:norl:
