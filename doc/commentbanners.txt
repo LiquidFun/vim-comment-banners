@@ -1,9 +1,43 @@
-*commentbanners.txt* Create customised comment banners
+*commentbanners.txt* - Create Customised Comment Banners
+
+==============================================================================
+
+    //====// //====// /\    /\   /\    /\ \\====\\ \\    /\ \\====\\                                  
+   //       //    // //\\  //\\ //\\  //\\ \\____   \\  //\\    \\                
+  //       //    // //  \\//  \\/  \\//  \\ \\       \\//  \\    \\            
+ //====// //====// //    \/    \\   \/    \\ \\====\\ \/    \\    \\                       
+               //===\\  //====// /\    // /\    // //====// //====// //====//                                           
+              //____// //____// //\\  // //\\  // //____   //____// //____                               
+             //   \\  //    // //  \\// //  \\// //       //  \\         //                      
+            //====// //    // //    \/ //    \/ //====// //    \\ //====//                                   
+                                                                               
+==============================================================================
+CONTENTS                                            *comment-banners-contents*
+
+    1. Basics.................................|comment-banners-basics|
+    2. Flags..................................|comment-banners-flags|
+    3. Examples...............................|comment-banners-examples|
+    4. Extensions.............................|comment-banners-extensions|
+
+==============================================================================
+BASICS                                                *comment-banners-basics*
 
 Let's you create mappings to create comment banners like these:
 
-customisable with various flags
+==============================================================================
+FLAGS                                                  *comment-banners-flags*
+
+
+==============================================================================
+EXAMPLES                                            *comment-banners-examples*
+
+
+==============================================================================
+EXAMPLES                                            *comment-banners-examples*
+
 
 Author: LiquidFun <https://github.com/liquidfun>
-License: same |license| as Vim
+License: same <|license|> as Vim
+
  vim:tw=78:et:ft=help:norl:
+▓
