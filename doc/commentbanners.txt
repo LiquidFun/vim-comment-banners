@@ -33,26 +33,70 @@ CONTENTS                                            *commentbanners-contents*
 ==============================================================================
 BASICS                                                *commentbanners-basics*
 
-Requires at least version 7.0.0
+Requires at least Vim version 7
 
 This plugin provides the |CommentBanners| and /TODO/ commands 
 Let's you create mappings to create comment banners like these:
 
+
+-------------------------------------------------
+PATTERN                    *commentbanners-pattern*
+
+A pattern is a list comma separated strings, where each string is 
+the pattern used in that line. For example:
+>
+    CommentBanners --pattern =,-,=
+<    
+see |commentbanners-example-pattern1|. By prepending various
+characters to the strings you can get more functionality:
+* 1
+
 ==============================================================================
 FLAGS                                                  *commentbanners-flags*
+
+Flags which can be added as optional arguments to the |CommentBanners|
 
 All flags require an argument, so there have to be an even number of space
 separated arguments.
 
+    -p, --pattern <pattern>     comma separated strings, where each string is 
+                                the pattern used in that line. Each string can 
+                                also be prepended with various options, see
+                                |commentbanners-pattern|. 
+                                Default: =,=,=
+
+    -w, --width <count>         each line will have exactly <count> characters.
+                                Default: 78
+
+    -c, --comment <bool>        specify whether the banner should be commented
+                                out. |commentstrings| needs to be defined for
+                                this to work. Alternatively supply a plugin
+                                command like Commentary to --commands. 
+                                Default: true
+
+    -C, --commands <commands>   
+
+    (-1 ... -9).option <val>
+
 ==============================================================================
 EXAMPLES                                            *commentbanners-examples*
+
+Various examples, prepend |nnoremap| <your-mapping> and add to your config to 
+create a mapping for that banner.
+
+--------------------------------------------------
+PATTERN1           *commentbanners-example-pattern1* 
+>
+    :CommentBanners --pattern =,-,=<CR>
+<    
+>
 
 
 ==============================================================================
 EXTENSIONS                                        *commentbanners-extensions*
 
-
 Author: LiquidFun <https://github.com/liquidfun>
-License: same <|license|> as Vim
+Repository: <https://github.com/liquidfun/vim-comment-banners>
+License: same |license| as Vim
 
  vim:tw=78:et:ft=help:norl:

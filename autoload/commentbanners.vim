@@ -10,16 +10,8 @@
 let s:defaultOptions = {
         \ 'pattern': ['=', '=', '='],
         \ 'width': 78,
-        \ 'title': '',
-        \ 'hasTitle': 1,
-        \ 'titleAlignment': 'centre',
-        \ 'titleRowNum': 1,
-        \ 'descriptionAlignment': 'centre',
-        \ 'descriptionRowNum': 'after-title',
-        \ 'description': '',
-        \ 'hasDescription': 0,
+        \ '1': {'align': 'centre', 'row': 1, 'spaces': 1},
         \ 'commandsOnEachLine': [],
-        \ 'spacesSeparatingTitle': 1,
         \ 'spacesSeparatingComment': 1,
         \ 'commentIfPossible': 0,
         \ 'beforeEach': '',
@@ -33,10 +25,6 @@ let s:flagToOption = {
         \ '-p': 'pattern',
         \ '--width': 'width',
         \ '-w': 'width',
-        \ '--title-align': 'titleAlignment',
-        \ '-a': 'titleAlignment',
-        \ '--subtitle-align': 'subtitleAlignment',
-        \ '-l': 'subtitleAlignment',
         \ '--commands': 'commandForEachLine',
         \ '-C': 'commandForEachLine',
         \ '--comment': 'commentIfPossible',
@@ -45,10 +33,6 @@ let s:flagToOption = {
         \ '-B': 'beforeEach',
         \ '--after': 'afterEach',
         \ '-A': 'afterEach',
-        \ '--title': 'title',
-        \ '-t': 'title',
-        \ '--subtitle': 'subtitle',
-        \ '-s': 'subtitle',
         \ '--mirror': 'mirror',
         \ '-m': 'mirror',
     \ }
@@ -147,6 +131,31 @@ endfunction
 " }}}1
 " ** Banner Creation {{{1
 function! s:make_banner(lnum1, lnum2, options)
+    let lines = get_lines(lnum1, lnum2)
+endfunction
+
+function! s:get_lines(lnum1, lnum2)
+    " Returns: a list of formatted strings from lnum1 to lnum2
+    let lines = []
+    for lnum in range(lnum1, lnum2)
+        call add(lines, substitute(getline(lnum), '^\s*\|\s*$', '', 'g')))
+    endfor
+    return lines
+endfunction
+
+function! s:sort_by_occurence(lines, options) 
+    let occ = []
+    for index in range(1,9)
+        if has_key(options, string(index)) 
+            add(occ,)
+        endif
+    endfor
+endfunction
+
+" }}}1
+
+" {{{1
+function! s:make_banner_failed(lnum1, lnum2, options)
     " Find largest indentation
     let aboveCommentBanner = []
     let belowCommentBanner = []
@@ -172,18 +181,35 @@ function! s:make_banner(lnum1, lnum2, options)
         let comments[1] = cSpaces . comments[1]
     endif
     let front = indentation . comments[0] . a:options['beforeEach']
-    let back = a:options['afterEach'] . comments[1]
+e   let back = a:options['afterEach'] . comments[1]
     " Add fillers before
     let charsFit = a:options['width'] - len(front) - len(back)
     for index in range(0, tRow - 1)
         let currPattern = a:options['pattern'][index]
         call add(finalCommentBanner, front . repeat(currPattern, charsFit) . back)
     endfor
-    " Set title
+    " Add fillers after
+    for index in range(tRow + 1, pLen - 1)
+        let currPattern = a:options['pattern'][index]
+        call add(finalCommentBanner, front . repeat(currPattern, charsFit) . back)
+    endfor
+    " Insert banner
+    for index in range(len(finalCommentBanner))
+        call append(a:lnum1 - tRow + index, finalCommentBanner[index])
+    endfor
+endfunction
+
+function! s:setText(lnum1, lnum2, prefix)
     for lnum in range(a:lnum1, a:lnum2) 
-        let tSpaces = repeat(' ', a:options['spacesSeparatingTitle'])
-        let titletext = tSpaces . substitute(getline(lnum), '^\s*\|\s*$', '', 'g') . tSpaces
-        execute lnum . 'd'
+        let tSpaces = repeat(' ', a:options['titleSpaces'])
+        if options['title']
+        let titletext
+        if a:options['titleAlignment'] != 'right'
+            let titletext = titletext . tSpaces
+        endif
+        if a:options['titleAlignment'] != 'left'
+            let titletext = tSpaces . titletext
+        endif
         let charsFitTitle = a:options['width'] - len(front) - len(titletext) - len(back)
         let align = a:options['titleAlignment']
         if align == 'centre'
@@ -202,18 +228,10 @@ function! s:make_banner(lnum1, lnum2, options)
             \ . titletext 
             \ . repeat(currPattern, charsFitTitle - pCount)
             \ . back
-        call add(finalCommentBanner, full)
-    endfor
-    " Add fillers after
-    for index in range(tRow + 1, pLen - 1)
-        let currPattern = a:options['pattern'][index]
-        call add(finalCommentBanner, front . repeat(currPattern, charsFit) . back)
-    endfor
-    " Insert banner
-    for index in range(len(finalCommentBanner))
-        call append(a:lnum1 - tRow + index, finalCommentBanner[index])
+        call setline(lnum, full)
     endfor
 endfunction
+
 "}}}1
 " * Indentation Length {{{1
 function! s:indentation_length(indent) 
