@@ -268,85 +268,6 @@ endfunction
 
 " }}}1
 
-" {{{1 Old make banner
-function! s:make_banner_failed(lnum1, lnum2, options)
-    " Find largest indentation
-    let aboveCommentBanner = []
-    let belowCommentBanner = []
-    let tRow = a:options['titleRowNum']
-    if tRow == 'none'
-        let tRow = 0
-    endif
-    let pLen = len(a:options['pattern'])
-    let indentation = ''
-    for lnum in range(a:lnum1, a:lnum2)
-        let curr = matchstr(getline(lnum), '^\s*')
-        if s:indentation_length(indentation) < s:indentation_length(curr)
-            indentation == curr
-        endif
-    endfor
-    " Define variables which are true for finalCommentBanner lines
-    let cSpaces = repeat(' ', a:options['spacesSeparatingComment'])
-    let comments = s:comment_chars()
-    if comments[0] != ''
-        let comments[0] = comments[0] . cSpaces
-    endif
-    if comments[1] != ''
-        let comments[1] = cSpaces . comments[1]
-    endif
-    let front = indentation . comments[0] . a:options['beforeEach']
-e   let back = a:options['afterEach'] . comments[1]
-    " Add fillers before
-    let charsFit = a:options['width'] - len(front) - len(back)
-    for index in range(0, tRow - 1)
-        let currPattern = a:options['pattern'][index]
-        call add(finalCommentBanner, front . repeat(currPattern, charsFit) . back)
-    endfor
-    " Add fillers after
-    for index in range(tRow + 1, pLen - 1)
-        let currPattern = a:options['pattern'][index]
-        call add(finalCommentBanner, front . repeat(currPattern, charsFit) . back)
-    endfor
-    " Insert banner
-    for index in range(len(finalCommentBanner))
-        call append(a:lnum1 - tRow + index, finalCommentBanner[index])
-    endfor
-endfunction
-
-function! s:setText(lnum1, lnum2, prefix)
-    for lnum in range(a:lnum1, a:lnum2) 
-        let tSpaces = repeat(' ', a:options['titleSpaces'])
-        if options['title']
-        let titletext
-        if a:options['titleAlignment'] != 'right'
-            let titletext = titletext . tSpaces
-        endif
-        if a:options['titleAlignment'] != 'left'
-            let titletext = tSpaces . titletext
-        endif
-        let charsFitTitle = a:options['width'] - len(front) - len(titletext) - len(back)
-        let align = a:options['titleAlignment']
-        if align == 'centre'
-            let pCount = charsFitTitle / 2
-        elseif align == 'left'
-            let pCount = 0
-        elseif align == 'right'
-            let pCount = charsFitTitle
-        else
-            let pCount = charsFitTitle - max([len(front) - align, 0])
-        endif
-        let currPattern = a:options['pattern'][tRow]
-        let full = 
-            \ front 
-            \ . repeat(currPattern, pCount) 
-            \ . titletext 
-            \ . repeat(currPattern, charsFitTitle - pCount)
-            \ . back
-        call setline(lnum, full)
-    endfor
-endfunction
-
-"}}}1
 " * Indentation Length {{{1
 function! s:indentation_length(indent) 
     let length = 0
@@ -357,78 +278,6 @@ function! s:indentation_length(indent)
     return length
 endfunction
 " }}}1
-" - Deprecated {{{1
-function! s:make_banner_deprecated(
-        \ pattern,
-        \ titlePattern,
-        \ lineCountBefore,
-        \ lineCountAfter,
-        \ columnLimit,
-        \ addBefore,
-        \ addAfter,
-        \ isToBeCommented,
-    \ )
-
-    let lineCountBefore = a:lineCountBefore
-    let lineCountAfter = a:lineCountAfter
-    let lineNum = getcurpos()[1]
-    let indentation = matchstr(getline(lineNum), '^ *|^\t*')
-    " let indentationLength
-
-    " Remove spaces/tabs before and after title
-    let titleText = substitute(getline(lineNum), '^\s*\|\s*$', '', 'g')
-    let titleLength = strlen(titleText)             
-
-    " Needed count of separator chars in title
-    let charsFit = a:columnLimit - titleLength - strlen(a:addBefore) - strlen(a:addAfter) - 2
-    let charsFitLeft = charsFit / 2
-    let charsFitRight = charsFit / 2 + charsFit % 2
-
-    let patternsFit = charsFit / strlen(a:pattern)
-    let patternsFitLeft = charsFitLeft / strlen(a:titlePattern)
-    let patternsFitRight = charsFitLeft / strlen(a:titlePattern)
-
-    let divLeft = repeat(a:pattern, charsFitLeft)
-    let divRight = repeat(a:pattern, charsFitRight)
-    let divTitleLeft = repeat(a:titlePattern, charsFitLeft)
-    let divTitleRight = repeat(a:titlePattern, charsFitRight)
-    let middle = divTitleLeft . ' ' . titleText . ' ' . divTitleRight
-
-    if a:titlePattern ==# ''
-        let middle = middle . repeat(' ', charsFit) 
-    endif
-
-    " A full line of separator chars
-    let filler = divLeft . a:pattern . repeat(a:pattern, titleLength) . a:pattern . divRight
-
-    if a:pattern ==# ''
-        let filler = filler . repeat(' ', charsFit) 
-    endif
-
-    " Add the before and after stuff
-    let middle = a:addBefore . middle . a:addAfter
-    let filler = a:addBefore . filler . a:addAfter
-
-    call setline(lineNum, middle)
-    call s:comment_if_possible(a:isToBeCommented)
-
-    " Add filler before and after title
-    while lineCountAfter > 0
-        call append(lineNum, filler)
-        call cursor(lineNum + 1, 1)
-        call s:comment_if_possible(a:isToBeCommented)
-        let lineCountAfter -= 1
-    endwhile
-
-    while lineCountBefore > 0
-        call append(lineNum - 1, filler)
-        call cursor(lineNum, 1)
-        call s:comment_if_possible(a:isToBeCommented)
-        let lineCountBefore -= 1
-    endwhile
-
-endfunction
-" }}}1
 " ** Comment Handling {{{1
 function! s:comment_chars() abort
     let comment = &commentstring 
@@ -436,17 +285,6 @@ function! s:comment_chars() abort
         let comment = '%s'
     endif
     return split(substitute(comment, '\s*', '', 'g'), '%s', 1)
-endfunction
-
-function! s:comment_if_possible(isToBeCommented)
-    if a:isToBeCommented
-        let commentaryAvailable = execute('command Commentary') 
-        if !empty(commentaryAvailable)
-            Commentary
-            return
-        endif
-        " TODO: Display error message here
-    endif
 endfunction
 " }}}1
 
