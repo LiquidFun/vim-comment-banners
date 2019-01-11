@@ -63,33 +63,26 @@ endfunction
 
 function! s:apply_flags(flags)
     " Returns: modified dict of default options
+    call assert_true(len(a:flags) % 2 == 0, 'Uneven number of flags given')
     let options = deepcopy(s:defaultOptions)
-    for flag in a:flags
-        let [flagName, value] = s:parse_flag(flag)
-        let optionName = s:flagToOption[flagName]
+    let flagValuePairs = []
+    let index = 0
+    while index < len(a:flags)
+        call assert_true(has_key(options, a:flags[index]))
+        call add(flagValuePairs, [a:flags[index], s:parse_values(a:flags[index+1])]) 
+        let index += 2
+    endwhile
+    for pair in flagValuePairs
+        let optionName = s:flagToOption[pair[0]]
         if has_key(s:optionToParsingFunction, optionName)
             let ParseFunction = function(s:optionToParsingFunction[optionName])
-            call ParseFunction(options, optionName, value)
+            call ParseFunction(options, optionName, pair[1])
         else
-            let options[optionName] = value
+            let options[optionName] = pair[1]
         endif
     endfor
     return options
 endfunction
-
-" temp command
-" command! -nargs=? PF call s:parse_flag(<q-args>)<CR>
-
-function! s:parse_flag(flag)
-    " Returns: dict with { flagName : value } 
-    let key = matchstr(a:flag, '.\{-}=')
-    let key = key[:len(key)-2]
-    let values = s:parse_values(matchstr(a:flag, '=.*$')[1:])
-    return [key, values]
-endfunction
-
-" temp command
-" command! -nargs=? Parse call s:parse_values(<q-args>)<CR>
 
 function! s:parse_values(value)
     " Returns: list of values or single value if list is of size 1
@@ -131,7 +124,7 @@ endfunction
 " ** Banner Creation {{{1
 function! s:make_banner(lnum1, lnum2, options)
     let lines = s:get_lines(a:lnum1, a:lnum2)
-    call execute(a:lnum1 . ',' . a:lnum2 . 'd')
+    " call execute(a:lnum1 . ',' . a:lnum2 . 'd')
     let indentation = s:get_largest_indentation(a:lnum1, a:lnum2)
     let orderOfRows = s:get_sorted_by_appearance(a:options)
     let comments = s:get_comments(a:options)
@@ -141,20 +134,20 @@ function! s:make_banner(lnum1, lnum2, options)
 
     let commentbanner = []
 
-    for pnum in len(a:options['pattern'])
+    for pnum in range(len(a:options['pattern']))
         let titles = s:create_all_titles_in_line(orderOfRows, pnum)
         let frontWithTitle = front . titles['left']
         let backWithTitle = titles['right'] . back
         let fillerWidth = 
                 \ a:options['width'] 
-                \ - indentation_length(indentation)
+                \ - s:indentation_length(indentation)
                 \ - len(frontWithTitle)
                 \ - len(backWithTitle)
                 \ - len(titles['centre'])
         let currPattern = a:options['pattern'][pnum]
         let shouldMirror = a:options['mirror']
         let [leftFiller, rightFiller] = 
-                \ s:create_fillers(filerWidth, currPattern, shouldMirror)
+                \ s:create_fillers(fillerWidth, currPattern, shouldMirror)
         let fullTitle = 
                 \ indentation 
                 \ . frontWithTitle 
@@ -172,14 +165,15 @@ endfunction
 function! s:create_fillers(width, pattern, mirror)
     let leftOfCentre = a:width / 2
     let rightOfCentre = a:width / 2 + a:width % 2
-    let leftPattern = pattern
-    if mirror 
+    let leftPattern = a:pattern
+    if a:mirror 
         let rightPattern = s:mirror_pattern(pattern)
     else 
         let rightPattern = leftPattern
     endif
     let leftFiller = repeat(leftPattern, leftOfCentre / len(leftPattern))
     let rightFiller = repeat(rightPattern, rightOfCentre / len(rightPattern))
+    return [leftFiller, rightFiller]
 endfunction
 
 function! s:mirror_pattern(pattern)
@@ -198,26 +192,27 @@ endfunction
 
 function! s:create_all_titles_in_line(orderOfRows, lnum)
     let titles = {'left':'', 'centre':'', 'right':''}
-    while a:orderOfRows[0]['row'] == a:lnum
-        let title = s:get_title(line)
-        if orderOfRows[0]['align'] == 'right'
+    while len(a:orderOfRows) != 0 && a:orderOfRows[0]['row'] == a:lnum
+        let title = s:get_title(a:orderOfRows[0], a:lnum)
+        if a:orderOfRows[0]['align'] == 'right'
             let titles['left'] .= title
-        elseif orderOfRows[0]['align'] == 'left'
+        elseif a:orderOfRows[0]['align'] == 'left'
             let titles['right'] .= title
         else
             let titles['centre'] .= title
         endif
-        call remove(orderOfRows, 0)
+        call remove(a:orderOfRows, 0)
     endwhile
     return titles
 endfunction
 
-function! s:get_title(currTitleOptions)
+function! s:get_title(currTitleOptions, lnum)
     let spaces = repeat(' ', a:currTitleOptions['spaces'])
-    if a:currTitleOptions['alignment'] != 'right'
+    let text = getline(a:lnum)
+    if a:currTitleOptions['align'] != 'right'
         let text = text . spaces
     endif
-    if a:currTitleOptions['alignment'] != 'left'
+    if a:currTitleOptions['align'] != 'left'
         let text = spaces . text
     endif
     return text
@@ -226,8 +221,8 @@ endfunction
 function! s:get_lines(lnum1, lnum2)
     " Returns: a list of formatted strings from lnum1 to lnum2
     let lines = []
-    for lnum in range(lnum1, lnum2)
-        call add(lines, substitute(getline(lnum), '^\s*\|\s*$', '', 'g')))
+    for lnum in range(a:lnum1, a:lnum2)
+        call add(lines, substitute(getline(lnum), '^\s*\|\s*$', '', 'g'))
     endfor
     return lines
 endfunction
@@ -235,8 +230,8 @@ endfunction
 function! s:get_sorted_by_appearance(options) 
     let occ = []
     for index in range(1,9)
-        if has_key(options, string(index)) 
-            call add(occ, options[string(index)])
+        if has_key(a:options, string(index)) 
+            call add(occ, a:options[string(index)])
         endif
         call sort(occ, {i1, i2 -> i1['row'] - i2['row']})
     endfor
