@@ -135,7 +135,7 @@ function! s:make_banner(lnum1, lnum2, options)
     let commentbanner = []
 
     for pnum in range(len(a:options['pattern']))
-        let titles = s:create_all_titles_in_line(orderOfRows, pnum)
+        let titles = s:create_all_titles_in_line(orderOfRows, pnum, lines)
         let frontWithTitle = front . titles['left']
         let backWithTitle = titles['right'] . back
         let fillerWidth = 
@@ -190,10 +190,11 @@ function! s:mirror_pattern(pattern)
     return newPattern
 endfunction
 
-function! s:create_all_titles_in_line(orderOfRows, lnum)
+function! s:create_all_titles_in_line(orderOfRows, pnum, lines)
     let titles = {'left':'', 'centre':'', 'right':''}
-    while len(a:orderOfRows) != 0 && a:orderOfRows[0]['row'] == a:lnum
-        let title = s:get_title(a:orderOfRows[0], a:lnum)
+    while len(a:orderOfRows) != 0 && a:orderOfRows[0]['row'] == a:pnum
+        echo 'hey'
+        let title = s:get_title(a:orderOfRows[0], a:lines)
         if a:orderOfRows[0]['align'] == 'right'
             let titles['left'] .= title
         elseif a:orderOfRows[0]['align'] == 'left'
@@ -206,9 +207,10 @@ function! s:create_all_titles_in_line(orderOfRows, lnum)
     return titles
 endfunction
 
-function! s:get_title(currTitleOptions, lnum)
+function! s:get_title(currTitleOptions, lines)
     let spaces = repeat(' ', a:currTitleOptions['spaces'])
-    let text = getline(a:lnum)
+    let text = a:lines[0]
+    call remove(a:lines, 0)
     if a:currTitleOptions['align'] != 'right'
         let text = text . spaces
     endif

@@ -47,10 +47,18 @@ used in that line. For example:
 >
     CommentBanners --pattern =,-,=
 <    
-see |commentbanners-example-pattern1|. By prepending 1 through 9 you can
+See |commentbanners-example-pattern1|. By prepending 1 through 9 you can
 specify where i-th line should go in the pattern
 strings you can get more functionality:
 * 1
+*
+
+To write a ',', '/', ' ' or a number you need to escape them with a '/', 
+like this: 
+>
+    CommentBanners --pattern =,\ \, \,=
+<    
+See: ...
 
 ==============================================================================
 FLAGS                                                     *commentbanners-flags*
