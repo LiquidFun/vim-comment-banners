@@ -6,17 +6,21 @@
 
 " ** Static Variables {{{1
 
+" Note that the options for 1-9 are added by the for loop after the options
+
 " Options
 let s:defaultOptions = {
         \ 'pattern': ['=', '=', '='],
         \ 'width': 78,
-        \ '1': {'align': 'centre', 'row': 1, 'spaces': 1},
         \ 'commandsOnEachLine': [],
         \ 'spacesSeparatingComment': 1,
         \ 'commentIfPossible': 0,
         \ 'beforeEach': '',
         \ 'afterEach': '',
         \ 'mirror': 0,
+        \ 'removeComments': 1,
+        \ 'line1': 0,
+        \ 'line2': 0,
     \ }
 
 " Flags
@@ -35,6 +39,10 @@ let s:flagToOption = {
         \ '-A': 'afterEach',
         \ '--mirror': 'mirror',
         \ '-m': 'mirror',
+        \ '--remove-comments': 'removeComments',
+        \ '-r': 'removeComments',
+        \ '--line1': 'line1',
+        \ '--line2': 'line2',
     \ }
 
 let s:optionToParsingFunction = {
@@ -44,30 +52,33 @@ let s:optionToParsingFunction = {
     \ }
 
 for index in range(1,9)
-    let s:flagToOption['-' . string(index)] = string(index)
-    let s:optionToParsingFunction[string(index)] = 'parse_title_option'
+    let s:flagToOption['-' . strtrans(index)] = strtrans(index)
+    let s:optionToParsingFunction[strtrans(index)] = 's:parse_title_option'
+    let s:defaultOptions[strtrans(index)] = 
+                \ {'align': 'centre', 'row': index, 'spaces': 1}
 endfor
 
 "}}}1
 " ** Wrappers {{{1
 function! commentbanners#wrapper(...) 
     let options = s:apply_flags(a:000)
-    let lineNum = getcurpos()[1]
-    call s:make_banner(lineNum, lineNum, options)
+    call s:make_banner(options['line1'], options['line2'], options)
 endfunction
 
-function! commentbanners#wrapper_motion() 
-    let &operatorfunc = 'commentbanners#wrapper'
-    echo &operatorfunc
-    call execute('g@')
-    " let options = s:apply_flags(a:000[2:])
-    " call s:make_banner(a:line1, a:line2, options)
-endfunction
+" function! commentbanners#wrapper_motion() 
+"     let &operatorfunc = 'commentbanners#wrapper'
+"     echo &operatorfunc
+"     call execute('g@')
+"     " let options = s:apply_flags(a:000[2:])
+"     " call s:make_banner(a:line1, a:line2, options)
+" endfunction
 " }}}1
 " ** Flag Management {{{1
 
+" * Parsing Flags in General {{{2
 function! s:apply_flags(flags)
     " Returns: modified dict of default options
+    echo a:flags
     call assert_true(len(a:flags) % 2 == 0, 'Uneven number of flags given')
     let options = deepcopy(s:defaultOptions)
     let flagValuePairs = []
@@ -91,27 +102,33 @@ endfunction
 
 function! s:parse_values(value)
     " Returns: list of values or single value if list is of size 1
-    let separate = split(a:value, '\\\@<!,')
+    let separate = split(a:value, '\\\@<!,', 1)
     call map(separate, {key, val -> substitute(val, '\\,', ',', 'g')})
     if len(separate) == 1
         return separate[0]
     endif
     return separate
 endfunction
-
-" Parse Value Functions {{{2
+" }}}2
+" * Parse Value Functions {{{2
 function! s:parse_pattern(options, optionName, pattern)
     for pnum in range(len(a:pattern))
-        if matchstr(a:pattern[pnum], '\\\@<!t')
-            let a:options['titleRowNum'] = pnum
-        endif
-        if matchstr(a:pattern[pnum], '\\\@<!s')
-            let a:options['subtitleRowNum'] = pnum
-        endif
-		let subPairs = {'\\\@<!t': '', '\\\@<!s': '','\\t': 't', '\\s': 's'}
-		for [key, val] in items(subPairs)
+        let titleNums = []
+        let subPairs = [
+                    \ ['\\\@<!\d', '\=add(titleNums, submatch(0))'], 
+                    \ ['\n', ''],
+                    \ ['\\\@<!\d', ''],
+                    \ ['\\\d\@=', ''],
+                \ ]
+        for [key, val] in subPairs
             let a:pattern[pnum] = substitute(a:pattern[pnum], key, val, 'g') 
         endfor
+        for title in titleNums
+            let a:options[strtrans(title)]['row'] = pnum
+        endfor
+        if a:pattern[pnum] == ''
+            let a:pattern[pnum] = ' '
+        endif
     endfor
     let a:options[a:optionName] = a:pattern
 endfunction
@@ -124,18 +141,25 @@ function! s:parse_bool(options, optionName, value)
     endif
 endfunction
 
-function! s:parse_title_option(options, optionName, value) 
-    assert_true(matchstr(value, ':'), 'Cannot parse title option ' . optionName . ' without :')
-    let [titleOption, val] = split(value, ':')
-    if has_key(a:options, a:optionName)
-        a:options[a:optionName][titleOption] = val
-    else
-        a:options[a:optionName] = {}
-        a:options[a:optionName][titleOption] = val
+function! s:parse_title_option(options, optionName, titleOptions) 
+    if type(a:titleOptions) != type([])
+        let a:titleOptionsList = [a:titleOptions] 
+    else 
+        let a:titleOptionsList = a:titleOptions 
     endif
+    for titleOptionWithVal in a:titleOptionsList
+        call assert_true(matchstr(titleOptionWithVal, ':'), 
+                    \ 'Cannot parse title option ' . a:optionName . ' without :')
+        let [titleOption, val] = split(titleOptionWithVal, ':')
+        if has_key(a:options, a:optionName)
+            let a:options[a:optionName][titleOption] = val
+        else
+            let a:options[a:optionName] = {}
+            let a:options[a:optionName][titleOption] = val
+        endif
+    endfor
 endfunction
 " }}}2
-
 " }}}1
 " ** Banner Creation {{{1
 function! s:make_banner(lnum1, lnum2, options)
@@ -151,7 +175,7 @@ function! s:make_banner(lnum1, lnum2, options)
     let commentbanner = []
 
     for pnum in range(len(a:options['pattern']))
-        let titles = s:create_all_titles_in_line(orderOfRows, pnum, lines)
+        let titles = s:create_all_titles_in_line(orderOfRows, pnum, lines, a:options)
         let frontWithTitle = front . titles['left']
         let backWithTitle = titles['right'] . back
         let fillerWidth = 
@@ -173,12 +197,8 @@ function! s:make_banner(lnum1, lnum2, options)
                 \ . backWithTitle
         call add(commentbanner, fullTitle) 
     endfor
-    for line in commentbanner
-        call append(a:lnum1 - 1, line)
-    endfor
+    call append(a:lnum1 - 1, commentbanner)
 endfunction
-
-My Wonderful Title
 
 function! s:create_fillers(width, pattern, mirror)
     let leftOfCentre = a:width / 2
@@ -208,14 +228,14 @@ function! s:mirror_pattern(pattern)
     return newPattern
 endfunction
 
-function! s:create_all_titles_in_line(orderOfRows, pnum, lines)
+function! s:create_all_titles_in_line(orderOfRows, pnum, lines, options)
     let titles = {'left':'', 'centre':'', 'right':''}
     while len(a:orderOfRows) != 0 && a:orderOfRows[0]['row'] == a:pnum
-        let title = s:get_title(a:orderOfRows[0], a:lines)
+        let title = s:get_title(a:orderOfRows[0], a:lines, a:options)
         if a:orderOfRows[0]['align'] == 'right'
-            let titles['left'] .= title
-        elseif a:orderOfRows[0]['align'] == 'left'
             let titles['right'] .= title
+        elseif a:orderOfRows[0]['align'] == 'left'
+            let titles['left'] .= title
         else
             let titles['centre'] .= title
         endif
@@ -224,7 +244,7 @@ function! s:create_all_titles_in_line(orderOfRows, pnum, lines)
     return titles
 endfunction
 
-function! s:get_title(currTitleOptions, lines)
+function! s:get_title(currTitleOptions, lines, options)
     let spaces = repeat(' ', a:currTitleOptions['spaces'])
     if len(a:lines) == 0
         return ''
@@ -232,10 +252,10 @@ function! s:get_title(currTitleOptions, lines)
     let text = a:lines[0]
     call remove(a:lines, 0)
     if text != ''
-        if a:currTitleOptions['align'] != 'right'
+        if a:currTitleOptions['align'] != 'right' || a:options['beforeEach'] != ''
             let text = text . spaces
         endif
-        if a:currTitleOptions['align'] != 'left'
+        if a:currTitleOptions['align'] != 'left' || a:options['afterEach'] != ''
             let text = spaces . text
         endif
     endif
@@ -254,8 +274,8 @@ endfunction
 function! s:get_sorted_by_appearance(options) 
     let occ = []
     for index in range(1,9)
-        if has_key(a:options, string(index)) 
-            call add(occ, a:options[string(index)])
+        if has_key(a:options, strtrans(index)) 
+            call add(occ, a:options[strtrans(index)])
         endif
         call sort(occ, {i1, i2 -> i1['row'] - i2['row']})
     endfor
@@ -263,6 +283,9 @@ function! s:get_sorted_by_appearance(options)
 endfunction
 
 function! s:get_comments(options)
+    if !a:options['commentIfPossible']
+        return ['', '']
+    endif
     let comments = s:comment_chars()
     let cSpaces = repeat(' ', a:options['spacesSeparatingComment'])
     if comments[0] != ''
@@ -286,7 +309,6 @@ function! s:get_largest_indentation(lnum1, lnum2)
 endfunction
 
 " }}}1
-
 " * Indentation Length {{{1
 function! s:indentation_length(indent) 
     let length = 0
@@ -306,5 +328,26 @@ function! s:comment_chars() abort
     return split(substitute(comment, '\s*', '', 'g'), '%s', 1)
 endfunction
 " }}}1
+" ** Test Mappings {{{1
+function! s:set_test_mappings()
+    nnoremap g1 :CommentBanner -w 60 -p =,1-,= <CR>
+    nnoremap g2 :CommentBanner -w 60 -p =,,= -1 align:left,spaces:1 <CR>
+    nnoremap g3 :CommentBanner -w 60 -p -,12 -1 align:left -2 align:right -c 0 <CR>
+    nnoremap g4 :CommentBanner -w 60 -p 1-,2-,3- -A \ --\|-  -B -\|--\  <CR>
+    nnoremap g5 :CommentBanner -w 60 -p 1=,,2,3,,= -A === -B === -2 align:left -3 align:left <CR>
+    nnoremap g6 :CommentBanner -w 60 -p -=<{,--=<<{(,-=<{ --mirror true <CR>
+endfunction
+call s:set_test_mappings()
+" }}}1
+
+finish
+
+" --------------- TESTING GROUNDS ----------------
+" ================================================
+
+INSTRUCTIONS
+1. Do something
+2. Do something else
+
 
 " vim:fdm=marker:fmr={{{,}}}:fdc=1

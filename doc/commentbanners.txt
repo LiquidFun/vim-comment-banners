@@ -2,26 +2,26 @@
 
 ==============================================================================
 
-    //====// //====// /\ ** /\ ***** /\ ** /\ ***** //====// /\ ** // //====//      
-   //       //    // //\\  //\\ *** //\\  //\\ *** //____   //\\  //    //    
-  //       //    // //  \\//  \\ * //  \\//  \\ * //       //  \\//    //      
- //====// //====// //    \/    \\ //    \/    \\ //====// //    \/    //  
-               //===\\  //====// /\    // /\    // //====// //====// //====//                                           
-              //____// //____// //\\  // //\\  // //____   //____// //____                               
-             //   \\  //    // //  \\// //  \\// //       //  \\         //                      
-            //====// //    // //    \/ //    \/ //====// //    \\ //====//                                   
-                                                                               
+    //====// //====// /\ ** /\ ***** /\ ** /\ ***** //====// /\ ** // //====//
+   //       //    // //\\  //\\ *** //\\  //\\ *** //____   //\\  //    //
+  //       //    // //  \\//  \\ * //  \\//  \\ * //       //  \\//    //
+ //====// //====// //    \/    \\ //    \/    \\ //====// //    \/    //
+               //===\\  //====// /\    // /\    // //====// //====// //====//
+              //____// //____// //\\  // //\\  // //____   //____// //____
+             //   \\  //    // //  \\// //  \\// //       //  \\         //
+            //====// //    // //    \/ //    \/ //====// //    \\ //====//
+
 Alternative:
 
-    //====// //====// /\    /\   /\    /\ \\====\\ \\    /\ \\====\\                                  
-   //       //    // //\\  //\\ //\\  //\\ \\____   \\  //\\    \\                
-  //       //    // //  \\//  \\/  \\//  \\ \\       \\//  \\    \\            
- //====// //====// //    \/    \\   \/    \\ \\====\\ \/    \\    \\                       
-               //===\\  //====// /\    // /\    // //====// //====// //====//                                           
-              //____// //____// //\\  // //\\  // //____   //____// //____                               
-             //   \\  //    // //  \\// //  \\// //       //  \\         //                      
-            //====// //    // //    \/ //    \/ //====// //    \\ //====//                                   
-              
+    //====// //====// /\    /\   /\    /\ \\====\\ \\    /\ \\====\\
+   //       //    // //\\  //\\ //\\  //\\ \\____   \\  //\\    \\
+  //       //    // //  \\//  \\/  \\//  \\ \\       \\//  \\    \\
+ //====// //====// //    \/    \\   \/    \\ \\====\\ \/    \\    \\
+               //===\\  //====// /\    // /\    // //====// //====// //====//
+              //____// //____// //\\  // //\\  // //____   //____// //____
+             //   \\  //    // //  \\// //  \\// //       //  \\         //
+            //====// //    // //    \/ //    \/ //====// //    \\ //====//
+
 ==============================================================================
 CONTENTS                                               *commentbanners-contents*
 
@@ -35,30 +35,27 @@ BASICS                                                   *commentbanners-basics*
 
 Requires at least Vim version 7
 
-This plugin provides the |CommentBanners| and /TODO/ commands 
+This plugin provides the |CommentBanner| and /TODO/ commands 
 Let's you create mappings to create comment banners like these:
 
 
--------------------------------------------------
-PATTERN                    *commentbanners-pattern*
+-----------------------------------------------------------
+PATTERN                              *commentbanners-pattern*
 
 A pattern is a list comma separated strings, where each string is the pattern 
 used in that line. For example:
 >
-    CommentBanners --pattern =,-,=
+    CommentBanner --pattern =,-,= --width 50
 <    
 See |commentbanners-example-pattern1|. By prepending 1 through 9 you can
-specify where i-th line should go in the pattern
-strings you can get more functionality:
-* 1
-*
+specify where i-th line should go in the pattern.
 
-To write a ',', '/', ' ' or a number you need to escape them with a '/', 
-like this: 
+Note that to write a ',', '\', ' ', '|' or a number you need to escape them 
+with a '\', like this: 
 >
-    CommentBanners --pattern =,\ \, \,=
+    CommentBanner --pattern =,\ ,\,,\|,\1,= --width 50
 <    
-See: ...
+See: |commentbanners-example-pattern2|
 
 ==============================================================================
 FLAGS                                                     *commentbanners-flags*
@@ -85,20 +82,109 @@ separated arguments.
 
     -C, --commands <commands>   
 
-    (-1 ... -9).option <val>
+    -1 ... -9 <opt>:<val>       allows you to specify the formatting for the
+                                titles from 1 to 9, possible values:
+                                align: left, centre, right
+                                spaces: <count>
+                                row: <count> 0-indexed
+
 
 ==============================================================================
 EXAMPLES                                               *commentbanners-examples*
 
-Various examples, prepend |nnoremap| <your-mapping> and add to your config to 
+Various examples, prepend |nnoremap| <your-mapping> and add it to your config to 
 create a mapping for that banner.
 
---------------------------------------------------
-PATTERN1           *commentbanners-example-pattern1* 
+
+------------------------------------------------------------
+PATTERN1                     *commentbanners-example-pattern1* 
 >
-    :CommentBanners --pattern =,-,=<CR>
-<    
+    :CommentBanner --pattern =,-,= -w 50
+
+==================================================
+--------------------- HEADER ---------------------
+==================================================
+
+
+
+
+
+------------------------------------------------------------
+PATTERN2                     *commentbanners-example-pattern2*
 >
+
+    :CommentBanner --pattern =,\ ,\,,\|,\1,= --width 50
+
+==================================================
+                      Header                      
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+||||||||||||||||||||||||||||||||||||||||||||||||||
+11111111111111111111111111111111111111111111111111
+==================================================
+
+
+
+
+
+------------------------------------------------------------
+PATTERN3                     *commentbanners-example-pattern3*
+>
+    :CommentBanner --pattern  -w 50
+
+
+
+
+
+
+------------------------------------------------------------
+PATTERN4                     *commentbanners-example-pattern4*
+>
+    :CommentBanner --pattern 1>-<,>-< -w 50
+
+
+
+
+
+------------------------------------------------------------
+COMMENT1                     *commentbanners-example-comment1*
+>
+    :CommentBanner --pattern 1-,- -w 50 --comment true
+
+/* ------------------ Yikes ------------------- */
+/* -------------------------------------------- */
+
+
+
+
+
+------------------------------------------------------------
+BEFORE-AFTER1            *commentbanners-example-beforeafter1*
+
+>
+    :CommentBanner --pattern -,1 -w 50 -c true -B --|-\  -A \ -|--
+
+/* --|- ---------------------------------- -|-- */
+/* --|-               Title                -|-- */
+
+
+
+
+
+------------------------------------------------------------
+BEFORE-AFTER2            *commentbanners-example-beforeafter2*
+
+>
+    :CommentBanner --pattern -,1 -w 50 -c true -B --|-\  -A \ -|--
+
+/* --|- ---------------------------------- -|-- */
+/* --|-               Title                -|-- */
+
+
+
+
+
+==============================================================================
+FANCY-EXAMPLES                                   *commentbanners-fancy-examples*
 
 
 ==============================================================================

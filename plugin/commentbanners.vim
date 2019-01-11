@@ -11,8 +11,8 @@ endif
 
 " let g:loaded_comment_banners = 1
 
-command! -nargs=* -range CommentBanner call commentbanners#wrapper(<f-args>)
+command! -nargs=* -range CommentBanner call commentbanners#wrapper('--line1', <line1>, '--line2', <line2>, <f-args>)
 " command! -nargs=* -range CommentBannerWithMotion 
-"     \ call commentbanners#wrapper_motion()
+"     \ call commentbanners#wrapper_motion(<line1>, <line2>, <f-args>)
 
-nnoremap <Plug>CommentBanner <SID>commentbanners#wrapper(<f-args>)
+" nnoremap <Plug>CommentBanner <SID>commentbanners#wrapper(<f-args>)
