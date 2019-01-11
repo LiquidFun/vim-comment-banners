@@ -25,10 +25,25 @@ Alternative:
 ==============================================================================
 CONTENTS                                               *commentbanners-contents*
 
+    0. Introduction...........................|commentbanners-introduction|
     1. Basics.................................|commentbanners-basics|
     2. Flags..................................|commentbanners-flags|
     3. Examples...............................|commentbanners-examples|
     4. Extensions.............................|commentbanners-extensions|
+
+==============================================================================
+INTRODUCTION                                       *commentbanners-introduction*
+
+This plugin let's you create customised comment banners with your own mappings.
+
+For Example: 
+>
+	============================================================
+	-------------------------- Title ---------------------------
+	============================================================
+
+This documentation heavily emphasises examples, so I encourage you to look up
+the linked examples.
 
 ==============================================================================
 BASICS                                                   *commentbanners-basics*
@@ -42,10 +57,12 @@ Let's you create mappings to create comment banners like these:
 -----------------------------------------------------------
 PATTERN                              *commentbanners-pattern*
 
-A pattern is a list comma separated strings, where each string is the pattern 
-used in that line. For example:
+A pattern is a list of comma separated strings. Its length tells the script 
+how many lines there will be. Each string is the pattern used in the i-th line.
+Patterns are repeated until they fill up the width of the comment banner.
+For example:
 >
-    CommentBanner --pattern =,-,= --width 50
+    CommentBanner --pattern =,-,= 
 <    
 See |commentbanners-example-pattern1|. By prepending 1 through 9 you can
 specify where i-th line should go in the pattern.
@@ -56,6 +73,25 @@ with a '\', like this:
     CommentBanner --pattern =,\ ,\,,\|,\1,= --width 50
 <    
 See: |commentbanners-example-pattern2|
+
+------------------------------------------------------------
+TITLE-OPTIONS                          *commentbanners-titles*
+
+You can supply -1, -2, -3, -4, -5, -6, -7, -8, -9 as flags to |CommentBanners|.
+This means that you are editing the formatting of the i-th title.
+
+Possible values:
+
+    align:left/centre/right
+    spaces:<count>
+    row:<count>                 (0-indexed, unnecessary if given in pattern)
+     
+These can be separated by commas, for example:
+>
+    :CommentBanner -p =,1,2,= -1 align:left,spaces:3 -2 spaces:2,align:centre
+
+See |commentbanners-example-title1|.
+
 
 ==============================================================================
 FLAGS                                                     *commentbanners-flags*
@@ -71,7 +107,8 @@ separated arguments.
                                 |commentbanners-pattern|. 
                                 Default: =,=,=
 
-    -w, --width <count>         each line will have exactly <count> characters.
+    -w, --width <count>         each line will have exactly <count>
+                                characters (including comment characters).
                                 Default: 78
 
     -c, --comment <bool>        specify whether the banner should be commented
@@ -80,30 +117,34 @@ separated arguments.
                                 command like Commentary to --commands. 
                                 Default: true
 
-    -C, --commands <commands>   
+    -C, --commands <commands>   specify comma separated commands which will be
+                                run at the beginning of each line of the
+                                banner. Keep in mind that this might modify the
+                                width of the banner, which won't be corrected
+                                by the plugin.
 
     -1 ... -9 <opt>:<val>       allows you to specify the formatting for the
-                                titles from 1 to 9, possible values:
-                                align: left, centre, right
-                                spaces: <count>
-                                row: <count> 0-indexed
+                                titles from 1 to 9, see |commentbanners-titles|
+                                for details.
 
 
 ==============================================================================
 EXAMPLES                                               *commentbanners-examples*
 
 Various examples, prepend |nnoremap| <your-mapping> and add it to your config to 
-create a mapping for that banner.
+create a mapping for that banner. You could use g1 through g9.
 
 
 ------------------------------------------------------------
 PATTERN1                     *commentbanners-example-pattern1* 
->
-    :CommentBanner --pattern =,-,= -w 50
 
-==================================================
---------------------- HEADER ---------------------
-==================================================
+:CommentBanner --pattern =,-,= -w 50
+
+>
+    ==================================================
+    --------------------- HEADER ---------------------
+    ==================================================
+<
 
 
 
@@ -111,16 +152,17 @@ PATTERN1                     *commentbanners-example-pattern1*
 
 ------------------------------------------------------------
 PATTERN2                     *commentbanners-example-pattern2*
+
+:CommentBanner --pattern =,\ ,\,,\|,\1,= --width 50
+
 >
-
-    :CommentBanner --pattern =,\ ,\,,\|,\1,= --width 50
-
-==================================================
-                      Header                      
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-||||||||||||||||||||||||||||||||||||||||||||||||||
-11111111111111111111111111111111111111111111111111
-==================================================
+    ==================================================
+                          Header                      
+    ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+    ||||||||||||||||||||||||||||||||||||||||||||||||||
+    11111111111111111111111111111111111111111111111111
+    ==================================================
+<
 
 
 
@@ -128,8 +170,8 @@ PATTERN2                     *commentbanners-example-pattern2*
 
 ------------------------------------------------------------
 PATTERN3                     *commentbanners-example-pattern3*
->
-    :CommentBanner --pattern  -w 50
+
+:CommentBanner --pattern  -w 50
 
 
 
@@ -138,8 +180,8 @@ PATTERN3                     *commentbanners-example-pattern3*
 
 ------------------------------------------------------------
 PATTERN4                     *commentbanners-example-pattern4*
->
-    :CommentBanner --pattern 1>-<,>-< -w 50
+
+:CommentBanner --pattern 1>-<,>-< -w 50
 
 
 
@@ -147,11 +189,13 @@ PATTERN4                     *commentbanners-example-pattern4*
 
 ------------------------------------------------------------
 COMMENT1                     *commentbanners-example-comment1*
->
-    :CommentBanner --pattern 1-,- -w 50 --comment true
 
-/* ------------------ Yikes ------------------- */
-/* -------------------------------------------- */
+:CommentBanner --pattern 1-,- -w 50 --comment true
+
+>
+    /* ------------------ Yikes ------------------- */
+    /* -------------------------------------------- */
+<
 
 
 
@@ -160,11 +204,12 @@ COMMENT1                     *commentbanners-example-comment1*
 ------------------------------------------------------------
 BEFORE-AFTER1            *commentbanners-example-beforeafter1*
 
->
-    :CommentBanner --pattern -,1 -w 50 -c true -B --|-\  -A \ -|--
+:CommentBanner --pattern -,1 -w 50 -c true -B --|-\  -A \ -|--
 
-/* --|- ---------------------------------- -|-- */
-/* --|-               Title                -|-- */
+>
+    /* --|- ---------------------------------- -|-- */
+    /* --|-               Title                -|-- */
+<
 
 
 
@@ -173,18 +218,31 @@ BEFORE-AFTER1            *commentbanners-example-beforeafter1*
 ------------------------------------------------------------
 BEFORE-AFTER2            *commentbanners-example-beforeafter2*
 
+:CommentBanner --pattern -,1,2,- -1 align:left -2 align:left -w 50 -c true -B | -A |
 >
-    :CommentBanner --pattern -,1 -w 50 -c true -B --|-\  -A \ -|--
+    /* |------------------------------------------| */
+    /* | Title                                    | */
+    /* | Subtitle                                 | */
+    /* |------------------------------------------| */
+<
 
-/* --|- ---------------------------------- -|-- */
-/* --|-               Title                -|-- */
+------------------------------------------------------------
+TITLE2                         *commentbanners-example-title2*
 
+:CommentBanner -w 50 -p -,12,- -1 align:left,spaces:3 -2 spaces:3,align:right
+
+>
+	--------------------------------------------------
+	The Code                                  is Great
+	--------------------------------------------------
 
 
 
 
 ==============================================================================
 FANCY-EXAMPLES                                   *commentbanners-fancy-examples*
+
+
 
 
 ==============================================================================
@@ -194,7 +252,7 @@ Author: LiquidFun <https://github.com/liquidfun>
 Repository: <https://github.com/liquidfun/vim-comment-banners>
 License: same |license| as Vim
 
-The usefulnes of this plugin is debatable, although this was mostly a learning 
+The usefulness of this plugin is debatable, although this was mostly a learning 
 project, so that wasn't all that important. If you have any kind of feedback 
 let me know, I'm eager to improve. Have fun!
 
