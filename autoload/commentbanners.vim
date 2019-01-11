@@ -40,8 +40,7 @@ let s:flagToOption = {
 let s:optionToParsingFunction = {
         \ 'pattern': 's:parse_pattern',
         \ 'mirror': 's:parse_bool',
-        \ 'title': 's:parse_text',
-        \ 'description': 's:parse_text',
+        \ 'commentIfPossible': 's:parse_bool',
     \ }
 
 "}}}1
@@ -131,7 +130,97 @@ endfunction
 " }}}1
 " ** Banner Creation {{{1
 function! s:make_banner(lnum1, lnum2, options)
-    let lines = get_lines(lnum1, lnum2)
+    let lines = s:get_lines(a:lnum1, a:lnum2)
+    call execute(a:lnum1 . ',' . a:lnum2 . 'd')
+    let indentation = s:get_largest_indentation(a:lnum1, a:lnum2)
+    let orderOfRows = s:get_sorted_by_appearance(a:options)
+    let comments = s:get_comments(a:options)
+
+    let front = comments[0] . a:options['beforeEach']
+    let back = a:options['afterEach'] . comments[1]
+
+    let commentbanner = []
+
+    for pnum in len(a:options['pattern'])
+        let titles = s:create_all_titles_in_line(orderOfRows, pnum)
+        let frontWithTitle = front . titles['left']
+        let backWithTitle = titles['right'] . back
+        let fillerWidth = 
+                \ a:options['width'] 
+                \ - indentation_length(indentation)
+                \ - len(frontWithTitle)
+                \ - len(backWithTitle)
+                \ - len(titles['centre'])
+        let currPattern = a:options['pattern'][pnum]
+        let shouldMirror = a:options['mirror']
+        let [leftFiller, rightFiller] = 
+                \ s:create_fillers(filerWidth, currPattern, shouldMirror)
+        let fullTitle = 
+                \ indentation 
+                \ . frontWithTitle 
+                \ . leftFiller 
+                \ . titles['centre'] 
+                \ . rightFiller 
+                \ . backWithTitle
+        call add(commentbanner, fullTitle) 
+    endfor
+    for line in commentbanner
+        call append(a:lnum1, line)
+    endfor
+endfunction
+
+function! s:create_fillers(width, pattern, mirror)
+    let leftOfCentre = a:width / 2
+    let rightOfCentre = a:width / 2 + a:width % 2
+    let leftPattern = pattern
+    if mirror 
+        let rightPattern = s:mirror_pattern(pattern)
+    else 
+        let rightPattern = leftPattern
+    endif
+    let leftFiller = repeat(leftPattern, leftOfCentre / len(leftPattern))
+    let rightFiller = repeat(rightPattern, rightOfCentre / len(rightPattern))
+endfunction
+
+function! s:mirror_pattern(pattern)
+    let newPattern = ''
+    let swaps = {'>': '<', '<': '>', '}': '{', '{': '}', ')': '(', '(': ')',
+                \ ']': '[', '[': ']', '\': '/', '/': '\'}
+    for char in split(a:pattern, '\zs')
+        if has_key(swaps, char)
+            let newPattern = swaps[char] . newPattern
+        else
+            let newPattern = char . newPattern
+        endif
+    endfor
+    return newPattern
+endfunction
+
+function! s:create_all_titles_in_line(orderOfRows, lnum)
+    let titles = {'left':'', 'centre':'', 'right':''}
+    while a:orderOfRows[0]['row'] == a:lnum
+        let title = s:get_title(line)
+        if orderOfRows[0]['align'] == 'right'
+            let titles['left'] .= title
+        elseif orderOfRows[0]['align'] == 'left'
+            let titles['right'] .= title
+        else
+            let titles['centre'] .= title
+        endif
+        call remove(orderOfRows, 0)
+    endwhile
+    return titles
+endfunction
+
+function! s:get_title(currTitleOptions)
+    let spaces = repeat(' ', a:currTitleOptions['spaces'])
+    if a:currTitleOptions['alignment'] != 'right'
+        let text = text . spaces
+    endif
+    if a:currTitleOptions['alignment'] != 'left'
+        let text = spaces . text
+    endif
+    return text
 endfunction
 
 function! s:get_lines(lnum1, lnum2)
@@ -143,18 +232,43 @@ function! s:get_lines(lnum1, lnum2)
     return lines
 endfunction
 
-function! s:sort_by_occurence(lines, options) 
+function! s:get_sorted_by_appearance(options) 
     let occ = []
     for index in range(1,9)
         if has_key(options, string(index)) 
-            add(occ,)
+            call add(occ, options[string(index)])
+        endif
+        call sort(occ, {i1, i2 -> i1['row'] - i2['row']})
+    endfor
+    return occ
+endfunction
+
+function! s:get_comments(options)
+    let comments = s:comment_chars()
+    let cSpaces = repeat(' ', a:options['spacesSeparatingComment'])
+    if comments[0] != ''
+        let comments[0] = comments[0] . cSpaces
+    endif
+    if comments[1] != ''
+        let comments[1] = cSpaces . comments[1]
+    endif
+    return comments
+endfunction
+
+function! s:get_largest_indentation(lnum1, lnum2) 
+    let indentation = ''
+    for lnum in range(a:lnum1, a:lnum2)
+        let curr = matchstr(getline(lnum), '^\s*')
+        if s:indentation_length(indentation) < s:indentation_length(curr)
+            indentation == curr
         endif
     endfor
+    return indentation
 endfunction
 
 " }}}1
 
-" {{{1
+" {{{1 Old make banner
 function! s:make_banner_failed(lnum1, lnum2, options)
     " Find largest indentation
     let aboveCommentBanner = []

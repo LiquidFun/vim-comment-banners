@@ -23,7 +23,7 @@ Alternative:
             //====// //    // //    \/ //    \/ //====// //    \\ //====//                                   
               
 ==============================================================================
-CONTENTS                                            *commentbanners-contents*
+CONTENTS                                               *commentbanners-contents*
 
     1. Basics.................................|commentbanners-basics|
     2. Flags..................................|commentbanners-flags|
@@ -31,7 +31,7 @@ CONTENTS                                            *commentbanners-contents*
     4. Extensions.............................|commentbanners-extensions|
 
 ==============================================================================
-BASICS                                                *commentbanners-basics*
+BASICS                                                   *commentbanners-basics*
 
 Requires at least Vim version 7
 
@@ -42,17 +42,18 @@ Let's you create mappings to create comment banners like these:
 -------------------------------------------------
 PATTERN                    *commentbanners-pattern*
 
-A pattern is a list comma separated strings, where each string is 
-the pattern used in that line. For example:
+A pattern is a list comma separated strings, where each string is the pattern 
+used in that line. For example:
 >
     CommentBanners --pattern =,-,=
 <    
-see |commentbanners-example-pattern1|. By prepending various
-characters to the strings you can get more functionality:
+see |commentbanners-example-pattern1|. By prepending 1 through 9 you can
+specify where i-th line should go in the pattern
+strings you can get more functionality:
 * 1
 
 ==============================================================================
-FLAGS                                                  *commentbanners-flags*
+FLAGS                                                     *commentbanners-flags*
 
 Flags which can be added as optional arguments to the |CommentBanners|
 
@@ -79,7 +80,7 @@ separated arguments.
     (-1 ... -9).option <val>
 
 ==============================================================================
-EXAMPLES                                            *commentbanners-examples*
+EXAMPLES                                               *commentbanners-examples*
 
 Various examples, prepend |nnoremap| <your-mapping> and add to your config to 
 create a mapping for that banner.
@@ -93,10 +94,14 @@ PATTERN1           *commentbanners-example-pattern1*
 
 
 ==============================================================================
-EXTENSIONS                                        *commentbanners-extensions*
+EXTENSIONS                                           *commentbanners-extensions*
 
 Author: LiquidFun <https://github.com/liquidfun>
 Repository: <https://github.com/liquidfun/vim-comment-banners>
 License: same |license| as Vim
+
+The usefulnes of this plugin is debatable, although this was mostly a learning 
+project, so that wasn't all that important. If you have any kind of feedback 
+let me know, I'm eager to improve. Have fun!
 
  vim:tw=78:et:ft=help:norl:
