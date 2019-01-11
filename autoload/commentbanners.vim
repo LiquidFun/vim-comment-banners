@@ -43,6 +43,11 @@ let s:optionToParsingFunction = {
         \ 'commentIfPossible': 's:parse_bool',
     \ }
 
+for index in range(1,9)
+    let s:flagToOption['-' . string(index)] = string(index)
+    let s:optionToParsingFunction[string(index)] = 'parse_title_option'
+endfor
+
 "}}}1
 " ** Wrappers {{{1
 function! commentbanners#wrapper(...) 
@@ -112,10 +117,21 @@ function! s:parse_pattern(options, optionName, pattern)
 endfunction
 
 function! s:parse_bool(options, optionName, value)
-    if a:value ==? 'false' || a:value == 0
+    if a:value ==? 'false' || a:value ==# '0'
         let a:options[a:optionName] = 0
     else
         let a:options[a:optionName] = 1
+    endif
+endfunction
+
+function! s:parse_title_option(options, optionName, value) 
+    assert_true(matchstr(value, ':'), 'Cannot parse title option ' . optionName . ' without :')
+    let [titleOption, val] = split(value, ':')
+    if has_key(a:options, a:optionName)
+        a:options[a:optionName][titleOption] = val
+    else
+        a:options[a:optionName] = {}
+        a:options[a:optionName][titleOption] = val
     endif
 endfunction
 " }}}2
@@ -124,7 +140,7 @@ endfunction
 " ** Banner Creation {{{1
 function! s:make_banner(lnum1, lnum2, options)
     let lines = s:get_lines(a:lnum1, a:lnum2)
-    " call execute(a:lnum1 . ',' . a:lnum2 . 'd')
+    call execute(a:lnum1 . ',' . a:lnum2 . 'd')
     let indentation = s:get_largest_indentation(a:lnum1, a:lnum2)
     let orderOfRows = s:get_sorted_by_appearance(a:options)
     let comments = s:get_comments(a:options)
@@ -158,16 +174,18 @@ function! s:make_banner(lnum1, lnum2, options)
         call add(commentbanner, fullTitle) 
     endfor
     for line in commentbanner
-        call append(a:lnum1, line)
+        call append(a:lnum1 - 1, line)
     endfor
 endfunction
+
+My Wonderful Title
 
 function! s:create_fillers(width, pattern, mirror)
     let leftOfCentre = a:width / 2
     let rightOfCentre = a:width / 2 + a:width % 2
     let leftPattern = a:pattern
     if a:mirror 
-        let rightPattern = s:mirror_pattern(pattern)
+        let rightPattern = s:mirror_pattern(a:pattern)
     else 
         let rightPattern = leftPattern
     endif
@@ -193,7 +211,6 @@ endfunction
 function! s:create_all_titles_in_line(orderOfRows, pnum, lines)
     let titles = {'left':'', 'centre':'', 'right':''}
     while len(a:orderOfRows) != 0 && a:orderOfRows[0]['row'] == a:pnum
-        echo 'hey'
         let title = s:get_title(a:orderOfRows[0], a:lines)
         if a:orderOfRows[0]['align'] == 'right'
             let titles['left'] .= title
@@ -209,13 +226,18 @@ endfunction
 
 function! s:get_title(currTitleOptions, lines)
     let spaces = repeat(' ', a:currTitleOptions['spaces'])
+    if len(a:lines) == 0
+        return ''
+    endif
     let text = a:lines[0]
     call remove(a:lines, 0)
-    if a:currTitleOptions['align'] != 'right'
-        let text = text . spaces
-    endif
-    if a:currTitleOptions['align'] != 'left'
-        let text = spaces . text
+    if text != ''
+        if a:currTitleOptions['align'] != 'right'
+            let text = text . spaces
+        endif
+        if a:currTitleOptions['align'] != 'left'
+            let text = spaces . text
+        endif
     endif
     return text
 endfunction
