@@ -8,47 +8,57 @@
 
 " Note that the options for 1-9 are added by the for loop after the options
 
-" Options
 let s:defaultOptions = {
-        \ 'pattern': ['=', '=', '='],
-        \ 'width': 78,
-        \ 'commandsOnEachLine': [],
+        \ 'pattern':                 ['=', '=', '='],
+        \ 'width':                   78,
+        \ 'commandsOnEachLine':      [],
         \ 'spacesSeparatingComment': 1,
-        \ 'commentIfPossible': 0,
-        \ 'beforeEach': '',
-        \ 'afterEach': '',
-        \ 'mirror': 0,
-        \ 'removeComments': 1,
-        \ 'line1': 0,
-        \ 'line2': 0,
+        \ 'commentIfPossible':       1,
+        \ 'beforeEach':              '',
+        \ 'afterEach':               '',
+        \ 'mirror':                  0,
+        \ 'removeComments':          1,
+        \ 'allowTruncation':         1,
+        \ 'operatorMode':            0,
+        \ 'line1':                   0,
+        \ 'line2':                   0,
     \ }
 
-" Flags
+" Used to convert from flags to patterns
 let s:flagToOption = {
-        \ '--pattern': 'pattern',
-        \ '-p': 'pattern',
-        \ '--width': 'width',
-        \ '-w': 'width',
-        \ '--commands': 'commandForEachLine',
-        \ '-C': 'commandForEachLine',
-        \ '--comment': 'commentIfPossible',
-        \ '-c': 'commentIfPossible',
-        \ '--before': 'beforeEach',
-        \ '-B': 'beforeEach',
-        \ '--after': 'afterEach',
-        \ '-A': 'afterEach',
-        \ '--mirror': 'mirror',
-        \ '-m': 'mirror',
-        \ '--remove-comments': 'removeComments',
-        \ '-r': 'removeComments',
-        \ '--line1': 'line1',
-        \ '--line2': 'line2',
+        \ '--pattern':          'pattern',
+        \ '-p':                 'pattern',
+        \ '--width':            'width',
+        \ '-w':                 'width',
+        \ '--commands':         'commandForEachLine',
+        \ '-C':                 'commandForEachLine',
+        \ '--comment':          'commentIfPossible',
+        \ '-c':                 'commentIfPossible',
+        \ '--before':           'beforeEach',
+        \ '-B':                 'beforeEach',
+        \ '--after':            'afterEach',
+        \ '-A':                 'afterEach',
+        \ '--mirror':           'mirror',
+        \ '-m':                 'mirror',
+        \ '--remove-comments':  'removeComments',
+        \ '-r':                 'removeComments',
+        \ '--operator':         'operatorMode',
+        \ '-o':                 'operatorMode',
+        \ '--allow-truncation': 'allowTruncation',
+        \ '-t':                 'allowTruncation',
+        \ '--line1':            'line1',
+        \ '--line2':            'line2',
     \ }
 
+" After parsing the flags these functions will be called with 
+" (options, optionName, value)
 let s:optionToParsingFunction = {
-        \ 'pattern': 's:parse_pattern',
-        \ 'mirror': 's:parse_bool',
+        \ 'pattern':           's:parse_pattern',
+        \ 'mirror':            's:parse_bool',
         \ 'commentIfPossible': 's:parse_bool',
+        \ 'allowTruncation':   's:parse_bool',
+        \ 'removeComments':    's:parse_bool',
+        \ 'operatorMode':      's:parse_bool',
     \ }
 
 for index in range(1,9)
@@ -62,6 +72,9 @@ endfor
 " ** Wrappers {{{1
 function! commentbanners#wrapper(...) 
     let options = s:apply_flags(a:000)
+    " if options['operatorMode']
+        " exe :set opfunc=
+    " endif
     call s:make_banner(options['line1'], options['line2'], options)
 endfunction
 
@@ -162,6 +175,9 @@ endfunction
 " }}}2
 " }}}1
 " ** Banner Creation {{{1
+
+" Takes the lines from lnum1 to lnum2 and creates a comment banner with the
+" supplied options.
 function! s:make_banner(lnum1, lnum2, options)
     let lines = s:get_lines(a:lnum1, a:lnum2)
     call execute(a:lnum1 . ',' . a:lnum2 . 'd')
@@ -186,8 +202,9 @@ function! s:make_banner(lnum1, lnum2, options)
                 \ - len(titles['centre'])
         let currPattern = a:options['pattern'][pnum]
         let shouldMirror = a:options['mirror']
+        let allowTruncation = a:options['allowTruncation']
         let [leftFiller, rightFiller] = 
-                \ s:create_fillers(fillerWidth, currPattern, shouldMirror)
+                \ s:create_fillers(fillerWidth, currPattern, shouldMirror, allowTruncation)
         let fullTitle = 
                 \ indentation 
                 \ . frontWithTitle 
@@ -200,7 +217,11 @@ function! s:make_banner(lnum1, lnum2, options)
     call append(a:lnum1 - 1, commentbanner)
 endfunction
 
-function! s:create_fillers(width, pattern, mirror)
+" Creates fillers which completely fill the required width with the pattern,
+" mirroring the right side if needed.
+function! s:create_fillers(width, pattern, mirror, allowTruncation)
+    " Takes: 20, <{, true
+    " Returns: ['<{<{<{<{<{', '}>}>}>}>}>']
     let leftOfCentre = a:width / 2
     let rightOfCentre = a:width / 2 + a:width % 2
     let leftPattern = a:pattern
@@ -211,10 +232,24 @@ function! s:create_fillers(width, pattern, mirror)
     endif
     let leftFiller = repeat(leftPattern, leftOfCentre / len(leftPattern))
     let rightFiller = repeat(rightPattern, rightOfCentre / len(rightPattern))
+    " TODO: Add option to truncate
+    if !a:allowTruncation
+        let leftFiller = leftPattern . leftFiller
+        let rightFiller = rightFiller . rightPattern
+    else
+        let leftFiller = repeat(' ', len(leftPattern)) . leftFiller
+        let rightFiller = repeat(' ', len(rightPattern) - 1) . rightFiller
+    endif
+    let leftFiller = strcharpart(leftFiller, len(leftFiller) - leftOfCentre)
+    let rightFiller = strcharpart(rightFiller, 0, rightOfCentre)
     return [leftFiller, rightFiller]
 endfunction
 
+" Mirrors a pattern by changing the directional characters and reversing their
+" order.
 function! s:mirror_pattern(pattern)
+    " Takes: --<--<--<{
+    " Returns: }>-->-->--
     let newPattern = ''
     let swaps = {'>': '<', '<': '>', '}': '{', '{': '}', ')': '(', '(': ')',
                 \ ']': '[', '[': ']', '\': '/', '/': '\'}
@@ -228,7 +263,10 @@ function! s:mirror_pattern(pattern)
     return newPattern
 endfunction
 
+" Returns a list of all titles appearing on that line
 function! s:create_all_titles_in_line(orderOfRows, pnum, lines, options)
+    " Takes: [{'align':'centre','row':1,'spaces':1}, ...], 1, ['A','B'], <options>
+    " Returns: {'left':'A', 'centre':'', 'right':''}
     let titles = {'left':'', 'centre':'', 'right':''}
     while len(a:orderOfRows) != 0 && a:orderOfRows[0]['row'] == a:pnum
         let title = s:get_title(a:orderOfRows[0], a:lines, a:options)
@@ -302,7 +340,7 @@ function! s:get_largest_indentation(lnum1, lnum2)
     for lnum in range(a:lnum1, a:lnum2)
         let curr = matchstr(getline(lnum), '^\s*')
         if s:indentation_length(indentation) < s:indentation_length(curr)
-            indentation == curr
+            let indentation = curr
         endif
     endfor
     return indentation
@@ -311,6 +349,7 @@ endfunction
 " }}}1
 " * Indentation Length {{{1
 function! s:indentation_length(indent) 
+    return strdisplaywidth(a:indent)
     let length = 0
     let val = {' ': 1, '\t': &tabstop}
     for char in split(a:indent)
@@ -328,7 +367,7 @@ function! s:comment_chars() abort
     return split(substitute(comment, '\s*', '', 'g'), '%s', 1)
 endfunction
 " }}}1
-" ** Test Mappings {{{1
+" ** Testing {{{1
 function! s:set_test_mappings()
     nnoremap g1 :CommentBanner -w 60 -p =,1-,= <CR>
     nnoremap g2 :CommentBanner -w 60 -p =,,= -1 align:left,spaces:1 <CR>
@@ -338,7 +377,6 @@ function! s:set_test_mappings()
     nnoremap g6 :CommentBanner -w 60 -p -=<{,--=<<{(,-=<{ --mirror true <CR>
 endfunction
 call s:set_test_mappings()
-" }}}1
 
 finish
 
@@ -348,6 +386,8 @@ finish
 INSTRUCTIONS
 1. Do something
 2. Do something else
+
+" }}}1
 
 
 " vim:fdm=marker:fmr={{{,}}}:fdc=1

@@ -138,7 +138,7 @@ create a mapping for that banner. You could use g1 through g9.
 ------------------------------------------------------------
 PATTERN1                     *commentbanners-example-pattern1* 
 
-:CommentBanner --pattern =,-,= -w 50
+:CommentBanner --pattern =,-,= --width 50 
 
 >
     ==================================================
