@@ -64,8 +64,12 @@ let s:optionToParsingFunction = {
 for index in range(1,9)
     let s:flagToOption['-' . strtrans(index)] = strtrans(index)
     let s:optionToParsingFunction[strtrans(index)] = 's:parse_title_option'
-    let s:defaultOptions[strtrans(index)] = 
-                \ {'align': 'centre', 'row': index, 'spaces': 1}
+    let s:defaultOptions[strtrans(index)] = {
+            \ 'align':  'centre',
+            \ 'spaces': 1,
+            \ 'row':    index,
+            \ 'inUse':  (index == 1),
+        \ }
 endfor
 
 "}}}1
@@ -125,6 +129,9 @@ endfunction
 " }}}2
 " * Parse Value Functions {{{2
 function! s:parse_pattern(options, optionName, pattern)
+    for index in range(1,9)
+        let a:options[strtrans(index)]['inUse'] = 0
+    endfor
     for pnum in range(len(a:pattern))
         let titleNums = []
         let subPairs = [
@@ -137,6 +144,7 @@ function! s:parse_pattern(options, optionName, pattern)
             let a:pattern[pnum] = substitute(a:pattern[pnum], key, val, 'g') 
         endfor
         for title in titleNums
+            let a:options[strtrans(title)]['inUse'] = 1
             let a:options[strtrans(title)]['row'] = pnum
         endfor
         if a:pattern[pnum] == ''
@@ -233,12 +241,12 @@ function! s:create_fillers(width, pattern, mirror, allowTruncation)
     let leftFiller = repeat(leftPattern, leftOfCentre / len(leftPattern))
     let rightFiller = repeat(rightPattern, rightOfCentre / len(rightPattern))
     " TODO: Add option to truncate
-    if !a:allowTruncation
+    if a:allowTruncation
         let leftFiller = leftPattern . leftFiller
         let rightFiller = rightFiller . rightPattern
     else
         let leftFiller = repeat(' ', len(leftPattern)) . leftFiller
-        let rightFiller = repeat(' ', len(rightPattern) - 1) . rightFiller
+        let rightFiller = rightFiller . repeat(' ', len(rightPattern) - 1)
     endif
     let leftFiller = strcharpart(leftFiller, len(leftFiller) - leftOfCentre)
     let rightFiller = strcharpart(rightFiller, 0, rightOfCentre)
@@ -313,7 +321,9 @@ function! s:get_sorted_by_appearance(options)
     let occ = []
     for index in range(1,9)
         if has_key(a:options, strtrans(index)) 
-            call add(occ, a:options[strtrans(index)])
+            if a:options[strtrans(index)]['inUse']
+                call add(occ, a:options[strtrans(index)])
+            endif
         endif
         call sort(occ, {i1, i2 -> i1['row'] - i2['row']})
     endfor
@@ -370,7 +380,7 @@ endfunction
 " ** Testing {{{1
 function! s:set_test_mappings()
     nnoremap g1 :CommentBanner -w 60 -p =,1-,= <CR>
-    nnoremap g2 :CommentBanner -w 60 -p =,,= -1 align:left,spaces:1 <CR>
+    nnoremap g2 :CommentBanner -w 60 -p =,1,= -1 align:left,spaces:1 <CR>
     nnoremap g3 :CommentBanner -w 60 -p -,12 -1 align:left -2 align:right -c 0 <CR>
     nnoremap g4 :CommentBanner -w 60 -p 1-,2-,3- -A \ --\|-  -B -\|--\  <CR>
     nnoremap g5 :CommentBanner -w 60 -p 1=,,2,3,,= -A === -B === -2 align:left -3 align:left <CR>
