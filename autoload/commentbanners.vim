@@ -5,8 +5,6 @@
 " =============================================================================
 
 " TODO: Dynamic width with -1
-" TODO: Operator pending mode
-" TODO: Automatic operator pending mode
 " TODO: Tests
 " TODO: Implement remove comments flag
 
@@ -92,7 +90,7 @@ function! commentbanners#parser(...)
 endfunction
 
 function! commentbanners#setupopfunc(options)
-    if a:options['operatorMode']
+    if has_key(a:options, 'operatorMode') && a:options['operatorMode']
         let s:tempOptions = a:options
         let &operatorfunc = 'commentbanners#opfunc'
     else
@@ -124,11 +122,11 @@ function! s:apply_mapping(options)
         let a:options['operatorMode'] = (titleInUseCount > 1)
     endif
     let mapping = a:options['mapping']
-    let appendix = '<CR><CR>'
+    let appendix = '<CR>'
     if a:options['operatorMode']
         let appendix .= 'g@'
     endif
-    call execute('nnoremap ' . mapping . ' :call commentbanners#setupopfunc(' . string(a:options) . ')' . appendix)
+    call execute('nnoremap <silent> ' . mapping . ' :call commentbanners#setupopfunc(' . string(a:options) . ')' . appendix)
 endfunction
 " }}}1
 " ** Flag Management {{{1
@@ -229,10 +227,10 @@ endfunction
 " supplied options.
 function! s:make_banner(lnum1, lnum2, options)
     let lines = s:get_lines(a:lnum1, a:lnum2)
-    call execute(a:lnum1 . ',' . a:lnum2 . 'd')
     let indentation = s:get_largest_indentation(a:lnum1, a:lnum1)
     let orderOfRows = s:get_sorted_by_appearance(a:options)
     let comments = s:get_comments(a:options)
+    call execute(a:lnum1 . ',' . a:lnum2 . 'd')
 
     let front = comments[0] . a:options['beforeEach']
     let back = a:options['afterEach'] . comments[1]
@@ -389,7 +387,6 @@ endfunction
 function! s:get_largest_indentation(lnum1, lnum2) 
     let indentation = ''
     for lnum in range(a:lnum1, a:lnum2)
-        echoerr lnum
         let curr = matchstr(getline(lnum), '^\s*')
         if s:indentation_length(indentation) < s:indentation_length(curr)
             let indentation = curr
