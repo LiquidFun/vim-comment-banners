@@ -4,6 +4,12 @@
 " Author:        LiquidFun <github.com/liquidfun>
 " =============================================================================
 
+" TODO: Dynamic width with -1
+" TODO: Operator pending mode
+" TODO: Automatic operator pending mode
+" TODO: Tests
+" TODO: Implement remove comments flag
+
 " ** Static Variables {{{1
 
 " Note that the options for 1-9 are added by the for loop after the options
@@ -19,7 +25,6 @@ let s:defaultOptions = {
         \ 'flip':                    0,
         \ 'removeComments':          1,
         \ 'allowTruncation':         1,
-        \ 'operatorMode':            0,
         \ 'mapping':                 '',
         \ 'line1':                   0,
         \ 'line2':                   0,
@@ -76,14 +81,54 @@ for index in range(1,9)
 endfor
 
 "}}}1
-" ** Wrappers {{{1
+" ** Public {{{1
 function! commentbanners#parser(...) 
     let options = s:apply_flags(a:000)
-    if options['operatorMode']
-        exe ':set opfunc=commentbanners#opfunc'
-        return 'g@'
+    if has_key(options, 'mapping') && options['mapping'] !=# ''
+        call s:apply_mapping(options)
+        return
     endif
-    call s:make_banner(options['line1'], options['line2'], options)
+    call commentbanners#setupopfunc(options)
+endfunction
+
+function! commentbanners#setupopfunc(options)
+    if a:options['operatorMode']
+        let s:tempOptions = a:options
+        let &operatorfunc = 'commentbanners#opfunc'
+    else
+        call s:make_banner(a:options['line1'], a:options['line2'], a:options)
+    endif
+endfunction
+
+function! commentbanners#opfunc(...)
+    let options = s:tempOptions
+    if options['operatorMode']
+        let line1 = getpos("'[")[1]
+        let line2 = getpos("']")[1]
+        call s:make_banner(line1, line2, options)
+    else
+        call s:make_banner(options['line1'], options['line2'], options)
+    endif
+endfunction
+" }}}1
+" ** Mappings {{{1
+function! s:apply_mapping(options)
+    " If operatorMode has not been set then determine it automatically:
+    " if there is 0 or 1 title then no operatorMode
+    " else operatorMode
+    if !has_key(a:options, 'operatorMode')
+        let titleInUseCount = 0
+        for index in range(1,9)
+            let titleInUseCount += a:options[strtrans(index)]['inUse']
+        endfor
+        let a:options['operatorMode'] = (titleInUseCount > 1)
+    endif
+    let mapping = a:options['mapping']
+    let appendix = '<CR><CR>'
+    if a:options['operatorMode']
+        let appendix .= 'g@'
+    endif
+    call execute('nnoremap ' . mapping . ' :call commentbanners#setupopfunc(' . string(a:options) . ')' . appendix)
 endfunction
 " }}}1
 " ** Flag Management {{{1
@@ -185,7 +230,7 @@ endfunction
 function! s:make_banner(lnum1, lnum2, options)
     let lines = s:get_lines(a:lnum1, a:lnum2)
     call execute(a:lnum1 . ',' . a:lnum2 . 'd')
-    let indentation = s:get_largest_indentation(a:lnum1, a:lnum2)
+    let indentation = s:get_largest_indentation(a:lnum1, a:lnum1)
     let orderOfRows = s:get_sorted_by_appearance(a:options)
     let comments = s:get_comments(a:options)
 
@@ -344,6 +389,7 @@ endfunction
 function! s:get_largest_indentation(lnum1, lnum2) 
     let indentation = ''
     for lnum in range(a:lnum1, a:lnum2)
+        echoerr lnum
         let curr = matchstr(getline(lnum), '^\s*')
         if s:indentation_length(indentation) < s:indentation_length(curr)
             let indentation = curr
@@ -375,12 +421,18 @@ endfunction
 " }}}1
 " ** Testing {{{1
 function! s:set_test_mappings()
-    nnoremap g1 :CommentBanner -w 60 -p =,1-,= <CR>
-    nnoremap g2 :CommentBanner -w 60 -p =,1,= -1 align:left,spaces:1 <CR>
-    nnoremap g3 :CommentBanner -w 60 -p -,12 -1 align:left -2 align:right -c 0 <CR>
-    nnoremap g4 :CommentBanner -w 60 -p 1-,2-,3- -A \ --\|-  -B -\|--\  <CR>
-    nnoremap g5 :CommentBanner -w 60 -p 1=,,2,3,,= -A === -B === -2 align:left -3 align:left <CR>
-    nnoremap g6 :CommentBanner -w 60 -p -=<{,--=<<{(,-=<{ --flip true <CR>
+    CommentBanner -m g1 -w 60 -p =,1-,=
+    CommentBanner -m g2 -w 60 -p =,1,= -1 align:left,spaces:1
+    CommentBanner -m g3 -w 60 -p -,12 -1 align:left -2 align:right -c 0 
+    " nnoremap g4 :CommentBanner -w 60 -p 1-,2-,3- -A \ --\|-  -B -\|--\  <CR>
+    " nnoremap g5 :CommentBanner -w 60 -p 1=,,2,3,,= -A === -B === -2 align:left -3 align:left <CR>
+    " nnoremap g6 :CommentBanner -w 60 -p -=<{,--=<<{(,-=<{ --flip true <CR>
+    "
+    " nnoremap g2 :CommentBanner -w 60 -p =,1,= -1 align:left,spaces:1 <CR>
+    " nnoremap g3 :CommentBanner -w 60 -p -,12 -1 align:left -2 align:right -c 0 <CR>
+    " nnoremap g4 :CommentBanner -w 60 -p 1-,2-,3- -A \ --\|-  -B -\|--\  <CR>
+    " nnoremap g5 :CommentBanner -w 60 -p 1=,,2,3,,= -A === -B === -2 align:left -3 align:left <CR>
+    " nnoremap g6 :CommentBanner -w 60 -p -=<{,--=<<{(,-=<{ --flip true <CR>
 endfunction
 call s:set_test_mappings()
 
