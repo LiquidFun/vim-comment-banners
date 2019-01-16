@@ -12,3 +12,4 @@ endif
 " let g:loaded_comment_banners = 1
 
 command! -nargs=* -range CommentBanner call commentbanners#parser('--line1', <line1>, '--line2', <line2>, <f-args>)
+command! -nargs=* CommentBannerMapping call commentbanners#map(<f-args>)

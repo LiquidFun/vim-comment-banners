@@ -12,6 +12,7 @@
 
 " Note that the options for 1-9 are added by the for loop after the options
 
+" * Default Options {{{2 
 let s:defaultOptions = {
         \ 'pattern':                 ['=', '=', '='],
         \ 'width':                   78,
@@ -23,11 +24,13 @@ let s:defaultOptions = {
         \ 'flip':                    0,
         \ 'removeComments':          1,
         \ 'allowTruncation':         1,
+        \ 'operatorMode':            'auto',
         \ 'mapping':                 '',
         \ 'line1':                   0,
         \ 'line2':                   0,
     \ }
-
+"}}}2
+" * Flag to Option Dictionary {{{2
 " Used to convert from flags to patterns
 let s:flagToOption = {
         \ '--pattern':          'pattern',
@@ -55,7 +58,8 @@ let s:flagToOption = {
         \ '--line1':            'line1',
         \ '--line2':            'line2',
     \ }
-
+" }}}2
+" * Option to parsing function dictionary {{{2
 " After parsing the flags these functions will be called with 
 " (options, optionName, value)
 let s:optionToParsingFunction = {
@@ -66,6 +70,7 @@ let s:optionToParsingFunction = {
         \ 'removeComments':    's:parse_bool',
         \ 'operatorMode':      's:parse_bool',
     \ }
+" }}}2
 
 for index in range(1,9)
     let s:flagToOption['-' . strtrans(index)] = strtrans(index)
@@ -80,15 +85,18 @@ endfor
 
 "}}}1
 " ** Public {{{1
+
+" * Parser {{{2
 function! commentbanners#parser(...) 
     let options = s:apply_flags(a:000)
     if has_key(options, 'mapping') && options['mapping'] !=# ''
-        call s:apply_mapping(options)
+        call s:apply_mapping(a:000)
         return
     endif
     call commentbanners#setupopfunc(options)
 endfunction
-
+" }}}2
+" * Opfunc {{{
 function! commentbanners#setupopfunc(options)
     if has_key(a:options, 'operatorMode') && a:options['operatorMode']
         let s:tempOptions = a:options
@@ -100,34 +108,38 @@ endfunction
 
 function! commentbanners#opfunc(...)
     let options = s:tempOptions
-    if options['operatorMode']
-        let line1 = getpos("'[")[1]
-        let line2 = getpos("']")[1]
-        call s:make_banner(line1, line2, options)
-    else
-        call s:make_banner(options['line1'], options['line2'], options)
-    endif
+    let line1 = getpos("'[")[1]
+    let line2 = getpos("']")[1]
+    call s:make_banner(line1, line2, options)
 endfunction
-" }}}1
-" ** Mappings {{{1
-function! s:apply_mapping(options)
+" }}}2
+" * Mappings {{{2
+function! commentbanners#map(mapping, command, ...)
     " If operatorMode has not been set then determine it automatically:
     " if there is 0 or 1 title then no operatorMode
     " else operatorMode
-    if !has_key(a:options, 'operatorMode')
+    let options = s:apply_flags(a:000)
+    if !has_key(options, 'operatorMode') || options['operatorMode'] ==? 'auto'
         let titleInUseCount = 0
         for index in range(1,9)
-            let titleInUseCount += a:options[strtrans(index)]['inUse']
+            let titleInUseCount += options[strtrans(index)]['inUse']
         endfor
-        let a:options['operatorMode'] = (titleInUseCount > 1)
+        let options['operatorMode'] = (titleInUseCount > 1)
     endif
-    let mapping = a:options['mapping']
-    let appendix = '<CR>'
-    if a:options['operatorMode']
-        let appendix .= 'g@'
+    if options['operatorMode']
+        " If operator is set then do not allow range and run g@ after function
+        call execute('nnoremap <silent> <nowait> ' . a:mapping . ' :call commentbanners#setupopfunc(' . string(options) . ')<CR>g@')
+    else
+        " If no operator is set then allow range
+        let flagsStr = ''
+        for flag in a:000
+            let flagsStr .= flag . ' '
+        endfor
+        call execute('nnoremap <silent> <nowait> ' . a:mapping . ' ' . a:command . ' ' . flagsStr . '<CR>')
     endif
-    call execute('nnoremap <silent> ' . mapping . ' :call commentbanners#setupopfunc(' . string(a:options) . ')' . appendix)
 endfunction
+" }}}2
+
 " }}}1
 " ** Flag Management {{{1
 
@@ -223,6 +235,7 @@ endfunction
 " }}}1
 " ** Banner Creation {{{1
 
+" * Make Banner {{{2
 " Takes the lines from lnum1 to lnum2 and creates a comment banner with the
 " supplied options.
 function! s:make_banner(lnum1, lnum2, options)
@@ -263,7 +276,8 @@ function! s:make_banner(lnum1, lnum2, options)
     endfor
     call append(a:lnum1 - 1, commentbanner)
 endfunction
-
+" }}}2
+" * Create Fillers {{{2
 " Creates fillers which completely fill the required width with the pattern,
 " flipping the right side if needed.
 function! s:create_fillers(width, pattern, flip, allowTruncation)
@@ -291,7 +305,8 @@ function! s:create_fillers(width, pattern, flip, allowTruncation)
     let rightFiller = strcharpart(rightFiller, 0, rightOfCentre)
     return [leftFiller, rightFiller]
 endfunction
-
+" }}}2
+" * Flip Pattern {{{2
 " Flips a pattern by changing the directional characters and reversing their
 " order.
 function! s:flip_pattern(pattern)
@@ -309,7 +324,8 @@ function! s:flip_pattern(pattern)
     endfor
     return newPattern
 endfunction
-
+" }}}2
+" * Create All Titles In Line {{{2
 " Returns a list of all titles appearing on that line
 function! s:create_all_titles_in_line(orderOfRows, pnum, lines, options)
     " Takes: [{'align':'centre','row':1,'spaces':1}, ...], 1, ['A','B'], <options>
@@ -328,7 +344,8 @@ function! s:create_all_titles_in_line(orderOfRows, pnum, lines, options)
     endwhile
     return titles
 endfunction
-
+" }}}2
+" * Get Title {{{2
 function! s:get_title(currTitleOptions, lines, options)
     let spaces = repeat(' ', a:currTitleOptions['spaces'])
     if len(a:lines) == 0
@@ -346,7 +363,8 @@ function! s:get_title(currTitleOptions, lines, options)
     endif
     return text
 endfunction
-
+" }}}2
+" * Get Lines {{{2
 function! s:get_lines(lnum1, lnum2)
     " Returns: a list of formatted strings from lnum1 to lnum2
     let lines = []
@@ -355,7 +373,8 @@ function! s:get_lines(lnum1, lnum2)
     endfor
     return lines
 endfunction
-
+" }}}2
+" * Get Sorted By Appearance {{{2
 function! s:get_sorted_by_appearance(options) 
     let occ = []
     for index in range(1,9)
@@ -368,7 +387,8 @@ function! s:get_sorted_by_appearance(options)
     endfor
     return occ
 endfunction
-
+" }}}2
+" * Get Comments {{{2
 function! s:get_comments(options)
     if !a:options['commentIfPossible']
         return ['', '']
@@ -383,7 +403,8 @@ function! s:get_comments(options)
     endif
     return comments
 endfunction
-
+" }}}2
+" * Get Largest Indentation {{{2
 function! s:get_largest_indentation(lnum1, lnum2) 
     let indentation = ''
     for lnum in range(a:lnum1, a:lnum2)
@@ -394,9 +415,8 @@ function! s:get_largest_indentation(lnum1, lnum2)
     endfor
     return indentation
 endfunction
-
-" }}}1
-" * Indentation Length {{{1
+" }}}2
+" * Indentation Length {{{2
 function! s:indentation_length(indent) 
     return strdisplaywidth(a:indent)
     let length = 0
@@ -406,6 +426,8 @@ function! s:indentation_length(indent)
     endfor
     return length
 endfunction
+" }}}2
+
 " }}}1
 " ** Comment Handling {{{1
 function! s:comment_chars() abort
@@ -418,13 +440,13 @@ endfunction
 " }}}1
 " ** Testing {{{1
 function! s:set_test_mappings()
-    CommentBanner -m g1 -w 60 -p =,1-,=
-    CommentBanner -m g2 -w 60 -p =,1,= -1 align:left,spaces:1
-    CommentBanner -m g3 -w 60 -p -,12 -1 align:left -2 align:right -c 0 
-    " nnoremap g4 :CommentBanner -w 60 -p 1-,2-,3- -A \ --\|-  -B -\|--\  <CR>
-    " nnoremap g5 :CommentBanner -w 60 -p 1=,,2,3,,= -A === -B === -2 align:left -3 align:left <CR>
-    " nnoremap g6 :CommentBanner -w 60 -p -=<{,--=<<{(,-=<{ --flip true <CR>
-    "
+    CommentBannerMapping g1 :CommentBanner -p =,1-,=
+    CommentBannerMapping g2 :CommentBanner -p =,1,= -1 align:left,spaces:1
+    CommentBannerMapping g3 :CommentBanner -p -,12 -1 align:left -2 align:right -c 0 
+    CommentBannerMapping g4 :CommentBanner -w 60 -p 1-,2-,3- -A \ --\|-  -B -\|--\  
+    CommentBannerMapping g5 :CommentBanner -w 60 -p 1=,,2,3,,= -A === -B === -2 align:left -3 align:left
+    CommentBannerMapping g6 :CommentBanner -w 60 -p -=<{,--=<<{(,-=<{ --flip true
+    
     " nnoremap g2 :CommentBanner -w 60 -p =,1,= -1 align:left,spaces:1 <CR>
     " nnoremap g3 :CommentBanner -w 60 -p -,12 -1 align:left -2 align:right -c 0 <CR>
     " nnoremap g4 :CommentBanner -w 60 -p 1-,2-,3- -A \ --\|-  -B -\|--\  <CR>
