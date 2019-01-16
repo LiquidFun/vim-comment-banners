@@ -7,6 +7,7 @@
 " TODO: Dynamic width with -1
 " TODO: Tests
 " TODO: Implement remove comments flag
+" TODO: Fix spacing issue with titles
 
 " ** Static Variables {{{1
 
@@ -64,7 +65,7 @@ let s:flagToOption = {
 " (options, optionName, value)
 let s:optionToParsingFunction = {
         \ 'pattern':           's:parse_pattern',
-        \ 'flip':            's:parse_bool',
+        \ 'flip':              's:parse_bool',
         \ 'commentIfPossible': 's:parse_bool',
         \ 'allowTruncation':   's:parse_bool',
         \ 'removeComments':    's:parse_bool',
@@ -239,28 +240,44 @@ endfunction
 " Takes the lines from lnum1 to lnum2 and creates a comment banner with the
 " supplied options.
 function! s:make_banner(lnum1, lnum2, options)
-    let lines = s:get_lines(a:lnum1, a:lnum2)
     let indentation = s:get_largest_indentation(a:lnum1, a:lnum1)
-    let orderOfRows = s:get_sorted_by_appearance(a:options)
     let comments = s:get_comments(a:options)
-    call execute(a:lnum1 . ',' . a:lnum2 . 'd')
-
     let front = comments[0] . a:options['beforeEach']
     let back = a:options['afterEach'] . comments[1]
-
+    let titles = s:create_all_titles(a:lnum1, a:lnum2, a:options)
     let commentbanner = []
-
+    
+    " Calculate width and title appearances
+    let maxFillerWidth = 0
     for pnum in range(len(a:options['pattern']))
-        let titles = s:create_all_titles_in_line(orderOfRows, pnum, lines, a:options)
-        let frontWithTitle = front . titles['left']
-        let backWithTitle = titles['right'] . back
-        let fillerWidth = 
-                \ a:options['width'] 
-                \ - s:indentation_length(indentation)
-                \ - len(frontWithTitle)
-                \ - len(backWithTitle)
-                \ - len(titles['centre'])
+        let frontWithTitle = front . titles[pnum]['left']
+        let backWithTitle = titles[pnum]['right'] . back
+        let withoutFillerLength = 
+                    \ s:indentation_length(indentation)
+                    \ + len(frontWithTitle)
+                    \ + len(backWithTitle)
+                    \ + len(titles[pnum]['centre'])
+        if a:options['width'] ==? 'auto'
+            let maxFillerWidth = max([maxFillerWidth, withoutFillerLength])
+        else
+            let maxFillerWidth = a:options['width']
+        endif
+    endfor
+
+    " Delete titles
+    call execute(a:lnum1 . ',' . a:lnum2 . 'd')
+
+    " Create final banner
+    for pnum in range(len(a:options['pattern']))
+        let frontWithTitle = front . titles[pnum]['left']
+        let backWithTitle = titles[pnum]['right'] . back
         let currPattern = a:options['pattern'][pnum]
+        let fillerWidth = 
+                    \ maxFillerWidth
+                    \ - s:indentation_length(indentation)
+                    \ - len(frontWithTitle)
+                    \ - len(backWithTitle)
+                    \ - len(titles[pnum]['centre'])
         let shouldFlip = a:options['flip']
         let allowTruncation = a:options['allowTruncation']
         let [leftFiller, rightFiller] = 
@@ -269,7 +286,7 @@ function! s:make_banner(lnum1, lnum2, options)
                 \ indentation 
                 \ . frontWithTitle 
                 \ . leftFiller 
-                \ . titles['centre'] 
+                \ . titles[pnum]['centre'] 
                 \ . rightFiller 
                 \ . backWithTitle
         call add(commentbanner, fullTitle) 
@@ -327,21 +344,25 @@ endfunction
 " }}}2
 " * Create All Titles In Line {{{2
 " Returns a list of all titles appearing on that line
-function! s:create_all_titles_in_line(orderOfRows, pnum, lines, options)
-    " Takes: [{'align':'centre','row':1,'spaces':1}, ...], 1, ['A','B'], <options>
-    " Returns: {'left':'A', 'centre':'', 'right':''}
-    let titles = {'left':'', 'centre':'', 'right':''}
-    while len(a:orderOfRows) != 0 && a:orderOfRows[0]['row'] == a:pnum
-        let title = s:get_title(a:orderOfRows[0], a:lines, a:options)
-        if a:orderOfRows[0]['align'] == 'right'
-            let titles['right'] .= title
-        elseif a:orderOfRows[0]['align'] == 'left'
-            let titles['left'] .= title
-        else
-            let titles['centre'] .= title
-        endif
-        call remove(a:orderOfRows, 0)
-    endwhile
+function! s:create_all_titles(lnum1, lnum2, options)
+    let titles = []
+    let lines = s:get_lines(a:lnum1, a:lnum2)
+    let orderOfRows = s:get_sorted_by_appearance(a:options)
+    for pnum in range(len(a:options['pattern']))
+        let titlesInLine = {'left':'', 'centre':'', 'right':''}
+        while len(orderOfRows) != 0 && orderOfRows[0]['row'] == pnum
+            let title = s:get_title(orderOfRows[0], lines, a:options)
+            if orderOfRows[0]['align'] == 'right'
+                let titlesInLine['right'] .= title
+            elseif orderOfRows[0]['align'] == 'left'
+                let titlesInLine['left'] .= title
+            else
+                let titlesInLine['centre'] .= title
+            endif
+            call remove(orderOfRows, 0)
+        endwhile
+        call add(titles, titlesInLine)
+    endfor
     return titles
 endfunction
 " }}}2
@@ -353,7 +374,7 @@ function! s:get_title(currTitleOptions, lines, options)
     endif
     let text = a:lines[0]
     call remove(a:lines, 0)
-    if text != ''
+    if text != '' 
         if a:currTitleOptions['align'] != 'right' || a:options['beforeEach'] != ''
             let text = text . spaces
         endif
@@ -441,17 +462,11 @@ endfunction
 " ** Testing {{{1
 function! s:set_test_mappings()
     CommentBannerMapping g1 :CommentBanner -p =,1-,=
-    CommentBannerMapping g2 :CommentBanner -p =,1,= -1 align:left,spaces:1
-    CommentBannerMapping g3 :CommentBanner -p -,12 -1 align:left -2 align:right -c 0 
+    CommentBannerMapping g2 :CommentBanner -p <->,1-,<-> -w auto -B \|>- -A -<\|
+    CommentBannerMapping g3 :CommentBanner -p -,12 -1 align:left -2 align:right
     CommentBannerMapping g4 :CommentBanner -w 60 -p 1-,2-,3- -A \ --\|-  -B -\|--\  
     CommentBannerMapping g5 :CommentBanner -w 60 -p 1=,,2,3,,= -A === -B === -2 align:left -3 align:left
-    CommentBannerMapping g6 :CommentBanner -w 60 -p -=<{,--=<<{(,-=<{ --flip true
-    
-    " nnoremap g2 :CommentBanner -w 60 -p =,1,= -1 align:left,spaces:1 <CR>
-    " nnoremap g3 :CommentBanner -w 60 -p -,12 -1 align:left -2 align:right -c 0 <CR>
-    " nnoremap g4 :CommentBanner -w 60 -p 1-,2-,3- -A \ --\|-  -B -\|--\  <CR>
-    " nnoremap g5 :CommentBanner -w 60 -p 1=,,2,3,,= -A === -B === -2 align:left -3 align:left <CR>
-    " nnoremap g6 :CommentBanner -w 60 -p -=<{,--=<<{(,-=<{ --flip true <CR>
+    CommentBannerMapping g6 :CommentBanner -w 60 -p -=<{,1--=<<{(,-=<{ --flip true
 endfunction
 call s:set_test_mappings()
 
