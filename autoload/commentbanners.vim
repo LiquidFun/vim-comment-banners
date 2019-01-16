@@ -16,10 +16,11 @@ let s:defaultOptions = {
         \ 'commentIfPossible':       1,
         \ 'beforeEach':              '',
         \ 'afterEach':               '',
-        \ 'mirror':                  0,
+        \ 'flip':                    0,
         \ 'removeComments':          1,
         \ 'allowTruncation':         1,
         \ 'operatorMode':            0,
+        \ 'mapping':                 '',
         \ 'line1':                   0,
         \ 'line2':                   0,
     \ }
@@ -38,8 +39,10 @@ let s:flagToOption = {
         \ '-B':                 'beforeEach',
         \ '--after':            'afterEach',
         \ '-A':                 'afterEach',
-        \ '--mirror':           'mirror',
-        \ '-m':                 'mirror',
+        \ '--flip'  :           'flip',
+        \ '-f':                 'flip',
+        \ '--mapping':          'mapping',
+        \ '-m':                 'mapping',
         \ '--remove-comments':  'removeComments',
         \ '-r':                 'removeComments',
         \ '--operator':         'operatorMode',
@@ -54,7 +57,7 @@ let s:flagToOption = {
 " (options, optionName, value)
 let s:optionToParsingFunction = {
         \ 'pattern':           's:parse_pattern',
-        \ 'mirror':            's:parse_bool',
+        \ 'flip':            's:parse_bool',
         \ 'commentIfPossible': 's:parse_bool',
         \ 'allowTruncation':   's:parse_bool',
         \ 'removeComments':    's:parse_bool',
@@ -74,28 +77,20 @@ endfor
 
 "}}}1
 " ** Wrappers {{{1
-function! commentbanners#wrapper(...) 
+function! commentbanners#parser(...) 
     let options = s:apply_flags(a:000)
-    " if options['operatorMode']
-        " exe :set opfunc=
-    " endif
+    if options['operatorMode']
+        exe ':set opfunc=commentbanners#opfunc'
+        return 'g@'
+    endif
     call s:make_banner(options['line1'], options['line2'], options)
 endfunction
-
-" function! commentbanners#wrapper_motion() 
-"     let &operatorfunc = 'commentbanners#wrapper'
-"     echo &operatorfunc
-"     call execute('g@')
-"     " let options = s:apply_flags(a:000[2:])
-"     " call s:make_banner(a:line1, a:line2, options)
-" endfunction
 " }}}1
 " ** Flag Management {{{1
 
 " * Parsing Flags in General {{{2
 function! s:apply_flags(flags)
     " Returns: modified dict of default options
-    echo a:flags
     call assert_true(len(a:flags) % 2 == 0, 'Uneven number of flags given')
     let options = deepcopy(s:defaultOptions)
     let flagValuePairs = []
@@ -181,6 +176,7 @@ function! s:parse_title_option(options, optionName, titleOptions)
     endfor
 endfunction
 " }}}2
+
 " }}}1
 " ** Banner Creation {{{1
 
@@ -209,10 +205,10 @@ function! s:make_banner(lnum1, lnum2, options)
                 \ - len(backWithTitle)
                 \ - len(titles['centre'])
         let currPattern = a:options['pattern'][pnum]
-        let shouldMirror = a:options['mirror']
+        let shouldFlip = a:options['flip']
         let allowTruncation = a:options['allowTruncation']
         let [leftFiller, rightFiller] = 
-                \ s:create_fillers(fillerWidth, currPattern, shouldMirror, allowTruncation)
+                \ s:create_fillers(fillerWidth, currPattern, shouldFlip, allowTruncation)
         let fullTitle = 
                 \ indentation 
                 \ . frontWithTitle 
@@ -226,15 +222,15 @@ function! s:make_banner(lnum1, lnum2, options)
 endfunction
 
 " Creates fillers which completely fill the required width with the pattern,
-" mirroring the right side if needed.
-function! s:create_fillers(width, pattern, mirror, allowTruncation)
+" flipping the right side if needed.
+function! s:create_fillers(width, pattern, flip, allowTruncation)
     " Takes: 20, <{, true
     " Returns: ['<{<{<{<{<{', '}>}>}>}>}>']
     let leftOfCentre = a:width / 2
     let rightOfCentre = a:width / 2 + a:width % 2
     let leftPattern = a:pattern
-    if a:mirror 
-        let rightPattern = s:mirror_pattern(a:pattern)
+    if a:flip 
+        let rightPattern = s:flip_pattern(a:pattern)
     else 
         let rightPattern = leftPattern
     endif
@@ -253,9 +249,9 @@ function! s:create_fillers(width, pattern, mirror, allowTruncation)
     return [leftFiller, rightFiller]
 endfunction
 
-" Mirrors a pattern by changing the directional characters and reversing their
+" Flips a pattern by changing the directional characters and reversing their
 " order.
-function! s:mirror_pattern(pattern)
+function! s:flip_pattern(pattern)
     " Takes: --<--<--<{
     " Returns: }>-->-->--
     let newPattern = ''
@@ -384,7 +380,7 @@ function! s:set_test_mappings()
     nnoremap g3 :CommentBanner -w 60 -p -,12 -1 align:left -2 align:right -c 0 <CR>
     nnoremap g4 :CommentBanner -w 60 -p 1-,2-,3- -A \ --\|-  -B -\|--\  <CR>
     nnoremap g5 :CommentBanner -w 60 -p 1=,,2,3,,= -A === -B === -2 align:left -3 align:left <CR>
-    nnoremap g6 :CommentBanner -w 60 -p -=<{,--=<<{(,-=<{ --mirror true <CR>
+    nnoremap g6 :CommentBanner -w 60 -p -=<{,--=<<{(,-=<{ --flip true <CR>
 endfunction
 call s:set_test_mappings()
 

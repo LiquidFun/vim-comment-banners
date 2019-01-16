@@ -11,16 +11,4 @@ endif
 
 " let g:loaded_comment_banners = 1
 
-command! -nargs=* -range CommentBanner call commentbanners#wrapper('--line1', <line1>, '--line2', <line2>, <f-args>)
-
-function! MyOpfunc(type, ...)
-    let rangeStart = getpos("'[")[1]
-    let rangeEnd = getpos("']")[1]
-    echo a:000
-    " call feedkeys('g@', 'i')
-    " call feedkeys(':CommentBanner --line1 ' . rangeStart . ' --line2 ' . rangeEnd, 'i')
-endfunction
-
-nmap <Plug>CommentBanner :set opfunc=MyOpfunc<CR>g@
-nmap gy <Plug>CommentBanner<CR>
-
+command! -nargs=* -range CommentBanner call commentbanners#parser('--line1', <line1>, '--line2', <line2>, <f-args>)
