@@ -19,7 +19,7 @@ let s:defaultOptions = {
         \ 'width':                   78,
         \ 'commandsOnEachLine':      [],
         \ 'spacesSeparatingComment': 1,
-        \ 'commentIfPossible':       1,
+        \ 'commentIfPossible':       0,
         \ 'beforeEach':              '',
         \ 'afterEach':               '',
         \ 'flip':                    0,
@@ -54,7 +54,7 @@ let s:flagToOption = {
         \ '-r':                 'removeComments',
         \ '--operator':         'operatorMode',
         \ '-o':                 'operatorMode',
-        \ '--allow-truncation': 'allowTruncation',
+        \ '--truncate':         'allowTruncation',
         \ '-t':                 'allowTruncation',
         \ '--line1':            'line1',
         \ '--line2':            'line2',
@@ -73,6 +73,7 @@ let s:optionToParsingFunction = {
     \ }
 " }}}2
 
+" Adds the defaults of the 1-9 options to the flags
 for index in range(1,9)
     let s:flagToOption['-' . strtrans(index)] = strtrans(index)
     let s:optionToParsingFunction[strtrans(index)] = 's:parse_title_option'
@@ -115,6 +116,10 @@ function! commentbanners#opfunc(...)
 endfunction
 " }}}2
 " * Mappings {{{2
+
+" Sets up mappings for comment banners. Determines if these should be in
+" operator mode.
+" TODO: set up vnoremap
 function! commentbanners#map(mapping, command, ...)
     " If operatorMode has not been set then determine it automatically:
     " if there is 0 or 1 title then no operatorMode
@@ -215,11 +220,11 @@ endfunction
 
 function! s:parse_title_option(options, optionName, titleOptions) 
     if type(a:titleOptions) != type([])
-        let a:titleOptionsList = [a:titleOptions] 
+        let l:titleOptionsList = [a:titleOptions] 
     else 
-        let a:titleOptionsList = a:titleOptions 
+        let l:titleOptionsList = a:titleOptions 
     endif
-    for titleOptionWithVal in a:titleOptionsList
+    for titleOptionWithVal in l:titleOptionsList
         call assert_true(matchstr(titleOptionWithVal, ':'), 
                     \ 'Cannot parse title option ' . a:optionName . ' without :')
         let [titleOption, val] = split(titleOptionWithVal, ':')
@@ -237,6 +242,7 @@ endfunction
 " ** Banner Creation {{{1
 
 " * Make Banner {{{2
+
 " Takes the lines from lnum1 to lnum2 and creates a comment banner with the
 " supplied options.
 function! s:make_banner(lnum1, lnum2, options)
@@ -295,6 +301,7 @@ function! s:make_banner(lnum1, lnum2, options)
 endfunction
 " }}}2
 " * Create Fillers {{{2
+
 " Creates fillers which completely fill the required width with the pattern,
 " flipping the right side if needed.
 function! s:create_fillers(width, pattern, flip, allowTruncation)
@@ -324,6 +331,7 @@ function! s:create_fillers(width, pattern, flip, allowTruncation)
 endfunction
 " }}}2
 " * Flip Pattern {{{2
+
 " Flips a pattern by changing the directional characters and reversing their
 " order.
 function! s:flip_pattern(pattern)
@@ -343,6 +351,7 @@ function! s:flip_pattern(pattern)
 endfunction
 " }}}2
 " * Create All Titles In Line {{{2
+
 " Returns a list of all titles appearing on that line
 function! s:create_all_titles(lnum1, lnum2, options)
     let titles = []
@@ -467,6 +476,9 @@ function! s:set_test_mappings()
     CommentBannerMapping g4 :CommentBanner -w 60 -p 1-,2-,3- -A \ --\|-  -B -\|--\  
     CommentBannerMapping g5 :CommentBanner -w 60 -p 1=,,2,3,,= -A === -B === -2 align:left -3 align:left
     CommentBannerMapping g6 :CommentBanner -w 60 -p -=<{,1--=<<{(,-=<{ --flip true
+    CommentBannerMapping g7 :CommentBanner -w 60 -p -<:>-,1,-<:>- -A -<:  -B  :>-  -1 align:left -c false -C Commentary
+    CommentBannerMapping g8 :CommentBanner -p <->,1-,<-> -w 60 -B \|>- -A -<\|
+    CommentBannerMapping g9 :CommentBanner -w 70 -p -</({,-=<{\|,-----<{1,-=<{\|,-</({  -1 spaces:3 -c false -f true
 endfunction
 call s:set_test_mappings()
 
@@ -476,7 +488,7 @@ finish
 " ================================================
 
 INSTRUCTIONS
-1. Do something
+1. Do something                  
 2. Do something else
 
 " }}}1

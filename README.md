@@ -1,3 +1,8 @@
+# Vim-Comment-Banners
+
+Vim-Comment-Banners is a Vim plugin which sets up mappings for creating formatted comment banners/boxes. It supports a wide variety of comment banners, including many comment banners used in popular projects such as {TODO}. It is meant to simplify the process of making beautiful configs, the idea being that each user sets up a couple of comment banner mappings and then uses them in any future projects/configs (you can also copy those from the :h CommentBanner page).
+
+
 ## Showcase
 
 ## Quick Guide
@@ -60,3 +65,9 @@ Note that it is still exactly 60 characters wide.
 [vundle]: https://github.com/gmarik/vundle
 [vim-plug]: https://github.com/junegunn/vim-plug
 [pathogen]: https://github.com/tpope/vim-pathogen
+
+## About
+
+Author: LiquidFun https://github.com/liquidfun
+Repository: https://github.com/liquidfun/vim-comment-banners
+License: same license as Vim

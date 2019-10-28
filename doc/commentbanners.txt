@@ -78,9 +78,17 @@ This means that you are editing the formatting of the i-th title.
 
 Possible values:
 
-    align:left/centre/right
-    spaces:<count>
-    row:<count>                 (0-indexed, unnecessary if given in pattern)
+    align:left/centre/right     specifices the alignment of the text, the -A
+                                and -B will not interfere with this and still
+                                go in after and before the text respectively.
+                                Default: centre
+
+    spaces:<count>              the space count before and after each text.
+                                Default: 1
+
+    row:<count>                 On which row the title should appear.
+                                0-indexed, unnecessary if given in pattern.
+                                Default: 0
      
 These have to be separated by commas (avoid spaces as that would lead it to
 interpret it as a different argument), for example:
@@ -88,6 +96,12 @@ interpret it as a different argument), for example:
     :CommentBanner --pattern =,1,2,=   -1 align:left   -2 spaces:2,align:centre
 
 See |commentbanners-example-title1|.
+
+
+------------------------------------------------------------
+COMMANDS                             *commentbanners-commands*
+
+
 
 
 ==============================================================================
@@ -106,31 +120,89 @@ separated arguments.
 
     -w, --width <count>         each line will have exactly <count>
                                 characters (including comment characters).
+                                Can be auto, in that case the comment banner
+                                will be only as wide as needs to be to
+                                accompany the text.
                                 Default: 78
+                                Possible values: {int 0 or above}, auto
 
     -c, --comment <bool>        specify whether the banner should be commented
                                 out. |commentstrings| needs to be defined for
                                 this to work. Alternatively supply a plugin
                                 command like Commentary to --commands. 
-                                Default: true
+                                Default: false
+                                Possible values: true, false
 
     -C, --commands <commands>   specify comma separated commands which will be
                                 run at the beginning of each line of the
                                 banner. Keep in mind that this might modify the
                                 width of the banner, which won't be corrected
-                                by the plugin. 
+                                by the plugin. See |commentbanners-commands| for
+                                further information.
                                 Default: [] 
 
     -1 ... -9 <option>:<value>  allows you to specify the formatting for the
                                 titles from 1 to 9, see |commentbanners-titles|
-                                for details and examples.
+                                for details, possible values and examples.
                                 Default: align:centre,spaces:1
+
+    -o, --operator <bool>       allows you to specify whether the mapping
+                                should wait for an *operator* after pressing the
+                                mapping.
+                                Default: auto
+                                Possible values: auto, true, false
+
+    -t, --truncate <bool>       if the length of a pattern string is larger
+                                than 1, then it will truncate it to guarantee
+                                the correct length. 
+                                Default: true
+                                Possible values: true, false
+
+    -B, --before <string>       a string which will be placed before each
+                                pattern, including the text
+
+    -A, --after <string>        a string which will be placed after each
+                                pattern, including the text
+
+
 
 
 ==============================================================================
 EXAMPLES                                               *commentbanners-examples*
 
-Various examples, prepend |nnoremap| <your-mapping> and add it to your config to 
+Various examples, prepend |:CommentBannerMapping| <your-mapping> and add it to your config to 
+create a mapping for that banner. You could use g1 through g9.
+
+------------------------------------------------------------
+LINUX-KERNEL1                   *commentbanners-linux-kernel1*
+
+:CommentBanner --pattern =,1,=   -w auto   -c false   -1 spaces:0
+
+>
+    ========================
+    Linux power supply class
+    ========================
+
+
+
+
+------------------------------------------------------------
+LINUX-KERNEL2                   *commentbanners-linux-kernel2*
+
+:CommentBanner --pattern 1,~   -w auto   -c false   -1 spaces:0
+
+>
+    Attributes/properties
+    ~~~~~~~~~~~~~~~~~~~~~
+
+
+
+
+
+==============================================================================
+EXAMPLES                                               *commentbanners-examples*
+
+Various examples, prepend |:CommentBannerMapping| <your-mapping> and add it to your config to 
 create a mapping for that banner. You could use g1 through g9.
 
 
@@ -226,6 +298,9 @@ BEFORE-AFTER2            *commentbanners-example-beforeafter2*
     /* |------------------------------------------| */
 <
 
+
+
+
 ------------------------------------------------------------
 TITLE2                         *commentbanners-example-title2*
 
@@ -239,8 +314,24 @@ TITLE2                         *commentbanners-example-title2*
 
 
 
+
 ==============================================================================
 FANCY-EXAMPLES                                   *commentbanners-fancy-examples*
+
+
+------------------------------------------------------------
+TITLE2                         *commentbanners-example-title2*
+
+:CommentBanner -w 70 -p -</({,-=<{\|,-----<{1,-=<{\|,-</({  -1 spaces:3 -c false -f true
+
+>
+    -</({-</({-</({-</({-</({-</({-</({})\>-})\>-})\>-})\>-})\>-})\>-})\>-
+    -=<{|-=<{|-=<{|-=<{|-=<{|-=<{|-=<{||}>=-|}>=-|}>=-|}>=-|}>=-|}>=-|}>=-
+    {-----<{-----<{-----<{   VIM-COMMENT-BANNERS   }>-----}>-----}>-----}>
+    -=<{|-=<{|-=<{|-=<{|-=<{|-=<{|-=<{||}>=-|}>=-|}>=-|}>=-|}>=-|}>=-|}>=-
+    -</({-</({-</({-</({-</({-</({-</({})\>-})\>-})\>-})\>-})\>-})\>-})\>-
+
+
 
 
 
