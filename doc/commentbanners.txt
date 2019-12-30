@@ -198,14 +198,6 @@ LINUX-KERNEL2                   *commentbanners-linux-kernel2*
 
 
 
-
-==============================================================================
-EXAMPLES                                               *commentbanners-examples*
-
-Various examples, prepend |:CommentBannerMapping| <your-mapping> and add it to your config to 
-create a mapping for that banner. You could use g1 through g9.
-
-
 ------------------------------------------------------------
 PATTERN1                     *commentbanners-example-pattern1* 
 
