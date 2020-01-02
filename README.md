@@ -5,6 +5,8 @@ Vim-Comment-Banners is a Vim plugin which sets up mappings for creating formatte
 
 ## Showcase
 
+TODO
+
 ## Quick Guide
 
 ### Simple Mapping
@@ -16,7 +18,7 @@ it instead allows you to easily add mappings to your `.vimrc` for creating banne
 CommentBannerMapping g1 :CommentBanner --pattern =,1-,=  --width 60  --comment false
 ```
 
-Produces this output once called with g1 on a line which has `Title` in it:
+Produces this output once called with g1 in normal mode on a line which has `Title` in it:
 
 ```
 ==========================================================
@@ -31,14 +33,14 @@ will set up nmap and vmap mappings + operators.
 
 * `g1` is your mapping.
 * `:CommentBanner` is the command provided by the plugin for making comment banners.
-* `--pattern` is a flag supplied to `:CommentBanner` with the argument of `=,1-,=`. The argument is split on `,`, where each split is considered the pattern for that line. For simplicity, a pattern is a string of chars which is duplicated until it fills the specified with.
+* `--pattern` is a flag supplied to `:CommentBanner` with the argument of `=,1-,=`. The argument is split on `,`, where each split is considered the pattern for that line. For simplicity, a pattern is a string of chars which is duplicated until it fills the specified width.
 * `--width` is yet another flag which specifies the column for the last character. This is useful to keep the 78 / 80 char limit on some projects. If this is not needed you can supply `auto` which would add just enough characters to cover the title.
 * `--comment` specifies whether the banner should be commented out.
 
-Whereas running this (`--comment` is set as `true` by default):
+Whereas this mapping:
 
 ```
-CommentBannerMapping g2 :CommentBanner --pattern =,1-,=  --width 60
+CommentBannerMapping g2 :CommentBanner --pattern =,1-,=  --width 60 --comment true
 ```
 
 would create this banner (depending on your language):
@@ -49,7 +51,13 @@ would create this banner (depending on your language):
 /* ==================================================== */
 ```
 
-Note that it is still exactly 60 characters wide.
+Note that it is still exactly 60 characters wide even with the comment characters.
+
+### Further Information
+
+Checkout the docs (`:h CommentBanner`) for further information. These are fairly detailed and have quite a few examples.
+
+Note that this project is still WIP and may still change things around.
 
 ## Installation
 
